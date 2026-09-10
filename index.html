@@ -169,8 +169,6 @@
   }
 
   /* ---- Garita ---- */
-  .garita-select{ display:flex; gap:8px; align-items:center; }
-  .garita-select select{ flex:1; }
 
   .scan-wrap{ position:relative; border-radius:var(--radius); overflow:hidden; border:1px solid var(--line); background:#000; }
   #reader{ background:#000; }
@@ -465,15 +463,6 @@
     <div class="topbar" style="margin:-22px -20px 4px;">
       <button class="back" onclick="pararScanner(); goTo('role');">←</button>
       <div class="title">Garita</div>
-    </div>
-
-    <div class="garita-select">
-      <label style="margin:0; white-space:nowrap;">Zona:</label>
-      <select id="garita-zona">
-        <option>Ica</option>
-        <option>Lambayeque</option>
-        <option>Piura</option>
-      </select>
     </div>
 
     <div class="field" style="margin-bottom:0;">
@@ -1374,7 +1363,7 @@ async function onScanSuccess(decodedText){
   try{ data = JSON.parse(decodedText); }
   catch(e){ data = { placa: decodedText }; }
 
-  const zona = document.getElementById("garita-zona").value;
+  const zona = "Piura"; // esta base es solo de Piura
   const tipo = tipoSeleccionado.garita;
   const fila = buscarFilaProgramacionHoy(data.placa, data.viaje);
   try{
