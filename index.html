@@ -566,11 +566,13 @@
       <div class="title">Registrar</div>
     </div>
 
-    <div class="field">
-      <label for="registrar-buscar">Buscar proveedor, conductor o placa ya existente</label>
-      <input type="text" id="registrar-buscar" placeholder="Nombre, RUC, DNI o placa..." autocomplete="off" oninput="buscarEnRegistrar()">
+    <div id="registrar-buscar-wrap">
+      <div class="field">
+        <label for="registrar-buscar">Buscar proveedor, conductor o placa ya existente</label>
+        <input type="text" id="registrar-buscar" placeholder="Nombre, RUC, DNI o placa..." autocomplete="off" oninput="buscarEnRegistrar()">
+      </div>
+      <div id="registrar-buscar-resultados" class="list"></div>
     </div>
-    <div id="registrar-buscar-resultados" class="list"></div>
 
     <div id="registrar-editando-banner" class="result-banner salida hidden" style="margin:2px 0;">
       <span class="rb-icon">✎</span>
@@ -610,9 +612,16 @@
 
     <div id="registrar-form-conductor" class="prog-form hidden">
       <div class="row2">
-        <div><label class="hint">DNI</label><input type="text" id="reg-c-dni" inputmode="numeric" placeholder="12345678"></div>
-        <div><label class="hint">Conductor (nombre completo)</label><input type="text" id="reg-c-nombre" placeholder="Nombre y apellidos"></div>
+        <div>
+          <label class="hint">DNI</label>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="reg-c-dni" inputmode="numeric" placeholder="12345678" style="flex:1;">
+            <button type="button" class="btn ghost" style="padding:0 14px; white-space:nowrap;" onclick="buscarDniLicenciaConductor()">🔎 DNI/Licencia</button>
+          </div>
+        </div>
+        <div><label class="hint">Conductor (nombre completo)</label><input type="text" id="reg-c-nombre" placeholder="Se llena solo al buscar DNI"></div>
       </div>
+      <div id="reg-c-dni-msg" class="hint" style="margin:0;"></div>
       <div class="row2">
         <div><label class="hint">RUC (del proveedor)</label><input type="text" id="reg-c-ruc" placeholder="10708507046"></div>
         <div>
@@ -673,9 +682,16 @@
 
     <div id="registrar-form-unidad" class="prog-form hidden">
       <div class="row2">
-        <div><label class="hint">Placa</label><input type="text" id="reg-u-placa" placeholder="ABC-123"></div>
-        <div><label class="hint">Tipo de Unidad</label><input type="text" id="reg-u-tipo" placeholder="CAMION"></div>
+        <div>
+          <label class="hint">Placa</label>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="reg-u-placa" placeholder="ABC-123" style="flex:1;">
+            <button type="button" class="btn ghost" style="padding:0 14px; white-space:nowrap;" onclick="buscarSoatRtvUnidad()">🔎 SOAT/RTV</button>
+          </div>
+        </div>
+        <div><label class="hint">Tipo de Unidad (automático)</label><input type="text" id="reg-u-tipo" placeholder="Se llena solo al buscar SOAT" readonly style="background:var(--purple-soft);"></div>
       </div>
+      <div id="reg-u-soat-msg" class="hint" style="margin:0;"></div>
       <div class="row2">
         <div><label class="hint">RUC (del proveedor)</label><input type="text" id="reg-u-ruc" placeholder="10708507046"></div>
         <div>
@@ -691,8 +707,19 @@
         <div><label class="hint">Sede</label><input type="text" id="reg-u-sede" placeholder="F.PIURA"></div>
       </div>
       <div class="row2">
+        <div>
+          <label class="hint">Capacidad (PH)</label>
+          <select id="reg-u-capacidad-ph">
+            <option value="10 PH">10 PH</option>
+            <option value="12 PH">12 PH</option>
+            <option value="14 PH">14 PH</option>
+          </select>
+        </div>
         <div><label class="hint">N° Pasajeros</label><input type="number" id="reg-u-pasajeros"></div>
+      </div>
+      <div class="row2">
         <div><label class="hint">Año de Fabricación</label><input type="number" id="reg-u-anio" placeholder="2015"></div>
+        <div></div>
       </div>
       <div class="row2">
         <div>
@@ -1950,6 +1977,11 @@ function actualizarModoBotonesRegistro(){
   // pestañas ya se desbloquearon.
   const editandoProveedor = !!(editandoRegistro && editandoRegistro.tipo === "proveedor");
   document.getElementById("reg-p-atajos").classList.toggle("hidden", !editandoProveedor);
+
+  // El buscador se esconde apenas se entra a editar cualquier registro —
+  // que solo se vea el atajo de "Cancelar" del banner, para no confundir
+  // con dos formas distintas de "salir" del modo edición.
+  document.getElementById("registrar-buscar-wrap").classList.toggle("hidden", !!editandoRegistro);
 }
 
 // Desde un Proveedor ya existente (abierto con el buscador), atajo directo
@@ -2119,6 +2151,8 @@ function cargarParaEditar(tipo, row){
     proveedorActivo = row.Proveedor || proveedorActivo;
     document.getElementById("reg-u-placa").value = row.Placa || "";
     document.getElementById("reg-u-tipo").value = row["Tipo de Unidad"] || "";
+    document.getElementById("reg-u-capacidad-ph").value = row["Carrocería"] || "10 PH";
+    document.getElementById("reg-u-soat-msg").textContent = "";
     document.getElementById("reg-u-ruc").value = row.RUC || "";
     document.getElementById("reg-u-proveedor").value = row.Proveedor || "";
     document.getElementById("reg-u-zona").value = row.ZONA || "Piura";
@@ -2223,6 +2257,7 @@ function limpiarFormularioConductorNuevo(resetProveedor){
    "reg-c-fecha-lic","reg-c-alerta-lic","reg-c-tiposctr","reg-c-aseguradora-sctr","reg-c-fecha-sctr","reg-c-alerta-sctr"]
     .forEach(id => document.getElementById(id).value = "");
   if (resetProveedor) document.getElementById("reg-c-proveedor").value = "";
+  document.getElementById("reg-c-dni-msg").textContent = "";
 }
 
 function leerDatosConductorForm(){
@@ -2240,6 +2275,45 @@ function leerDatosConductorForm(){
     aseguradoraSctr: document.getElementById("reg-c-aseguradora-sctr").value.trim(),
     fechaVencimientoSctr: document.getElementById("reg-c-fecha-sctr").value
   };
+}
+
+// Busca DNI (RENIEC) + Licencia de conducir en el mismo Worker (ConsultaDatos.com)
+// y llena solos: nombre, N° de Licencia, Categoría y Fecha de Vencimiento.
+async function buscarDniLicenciaConductor(){
+  const msg = document.getElementById("reg-c-dni-msg");
+  const dni = document.getElementById("reg-c-dni").value.trim().replace(/\D/g, "");
+  if (dni.length !== 8){ msg.textContent = "Ingresa un DNI de 8 dígitos primero."; return; }
+
+  msg.textContent = "Consultando DNI y Licencia…";
+  const [reniec, licencia] = await Promise.all([
+    workerFetch("consulta_dni_cd", { dni }),
+    workerFetch("consulta_licencia", { dni })
+  ]);
+
+  const partes = [];
+
+  if (reniec._error || reniec.ok === false){
+    partes.push("DNI: " + (reniec._error || reniec.error || "no encontrado"));
+  } else {
+    const nombre = [reniec.NOMBRES, reniec.AP_PAT, reniec.AP_MAT].filter(Boolean).join(" ");
+    if (nombre) document.getElementById("reg-c-nombre").value = nombre;
+    partes.push("Nombre ✔");
+  }
+
+  if (licencia._error || licencia.ok === false){
+    partes.push("Licencia: " + (licencia._error || licencia.error || "no encontrada"));
+  } else {
+    if (licencia.num_licencia) document.getElementById("reg-c-licencia").value = licencia.num_licencia;
+    const categoria = licencia.clase_categoria || [licencia.clase, licencia.categoria].filter(Boolean).join(" ");
+    if (categoria) document.getElementById("reg-c-categoria").value = categoria;
+    if (licencia.vigente_hasta){
+      document.getElementById("reg-c-fecha-lic").value = ddmmyyyyAFechaInput(licencia.vigente_hasta);
+      previsualizarAlerta("reg-c-fecha-lic", "reg-c-alerta-lic");
+    }
+    partes.push("Licencia ✔ (" + (licencia.estado || "consultada") + ")");
+  }
+
+  msg.textContent = partes.join(" · ");
 }
 
 // + Agregar a la lista (todavía no se guarda nada — se junta antes de mandar todo junto).
@@ -2373,6 +2447,8 @@ function limpiarFormularioUnidadNueva(resetProveedor){
   if (resetProveedor) document.getElementById("reg-u-proveedor").value = "";
   document.getElementById("reg-u-estado").value = "PROPIA";
   document.getElementById("reg-u-poliza").value = "NO";
+  document.getElementById("reg-u-capacidad-ph").value = "10 PH";
+  document.getElementById("reg-u-soat-msg").textContent = "";
   seleccionarTieneTC(false);
 }
 
@@ -2380,6 +2456,7 @@ function leerDatosUnidadForm(){
   return {
     placa: document.getElementById("reg-u-placa").value.trim(),
     tipoUnidad: document.getElementById("reg-u-tipo").value.trim(),
+    capacidadPH: document.getElementById("reg-u-capacidad-ph").value,
     ruc: document.getElementById("reg-u-ruc").value.trim(),
     proveedor: document.getElementById("reg-u-proveedor").value,
     zona: document.getElementById("reg-u-zona").value,
@@ -2393,6 +2470,64 @@ function leerDatosUnidadForm(){
     estadoUnidad: document.getElementById("reg-u-estado").value,
     polizaRC: document.getElementById("reg-u-poliza").value === "SI"
   };
+}
+
+/* ---- Buscar SOAT / Revisión Técnica automático (Worker Portal Beta:
+   ConsultaDatos.com + json.pe — mismo que usas en DATA-TRANSPORTE-DE-PERSONAL) ---- */
+const WORKER_URL = "https://portalbeta.betayazmingps.workers.dev";
+async function workerFetch(path, body){
+  try{
+    const r = await fetch(WORKER_URL + "/" + path, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const d = await r.json().catch(() => null);
+    if (!r.ok) return { _error: (d && d.error) || ("HTTP " + r.status) };
+    if (d && d.error) return { _error: d.error };
+    return d || { _error: "Respuesta vacía del Worker" };
+  }catch(e){
+    return { _error: "No se pudo conectar al Worker: " + e.message };
+  }
+}
+
+async function buscarSoatRtvUnidad(){
+  const msg = document.getElementById("reg-u-soat-msg");
+  const placa = document.getElementById("reg-u-placa").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (placa.length < 6){ msg.textContent = "Ingresa una placa válida primero."; return; }
+
+  msg.textContent = "Consultando SOAT y Revisión Técnica…";
+  const [soat, citv] = await Promise.all([
+    workerFetch("consulta_soat", { placa }),
+    workerFetch("consulta_citv_json", { placa })
+  ]);
+
+  const partes = [];
+
+  if (soat._error || soat.ok === false){
+    partes.push("SOAT: " + (soat._error || soat.error || "no encontrado"));
+  } else {
+    if (soat.fecha_fin){
+      document.getElementById("reg-u-fecha-soat").value = ddmmyyyyAFechaInput(soat.fecha_fin);
+      previsualizarAlerta("reg-u-fecha-soat", "reg-u-alerta-soat");
+    }
+    if (soat.clase_vehiculo){
+      document.getElementById("reg-u-tipo").value = soat.clase_vehiculo;
+    }
+    partes.push("SOAT ✔ (" + (soat.estado || "consultado") + ")");
+  }
+
+  const citvItems = Array.isArray(citv.data) ? citv.data : (citv.data ? [citv.data] : []);
+  const citvUltimo = citvItems.find(x => x.orden === "ULTIMO") || citvItems[0];
+  if (citv._error || !citvUltimo){
+    partes.push("Revisión Técnica: " + (citv._error || "no encontrada"));
+  } else {
+    if (citvUltimo.vigente_hasta){
+      document.getElementById("reg-u-fecha-rtv").value = ddmmyyyyAFechaInput(citvUltimo.vigente_hasta);
+      previsualizarAlerta("reg-u-fecha-rtv", "reg-u-alerta-rtv");
+    }
+    partes.push("Rev. Técnica ✔ (" + (citvUltimo.resultado_inspeccion || citvUltimo.estado || "consultada") + ")");
+  }
+
+  msg.textContent = partes.join(" · ");
 }
 
 function agregarUnidadALista(){
@@ -2422,7 +2557,7 @@ function renderListaUnidadesRegistro(){
 
 async function crearUnidadEnBackend_(datos){
   if (piuraEnDemo()){
-    basePiuraCache.unidades.push({ Placa: datos.placa, "Tipo de Unidad": datos.tipoUnidad, RUC: datos.ruc, Proveedor: datos.proveedor, ZONA: datos.zona, SEDE: datos.sede, "N° Pasajeros": datos.numPasajeros, Estado:"POR INGRESAR" });
+    basePiuraCache.unidades.push({ Placa: datos.placa, "Tipo de Unidad": datos.tipoUnidad, "Carrocería": datos.capacidadPH, RUC: datos.ruc, Proveedor: datos.proveedor, ZONA: datos.zona, SEDE: datos.sede, "N° Pasajeros": datos.numPasajeros, Estado:"POR INGRESAR" });
     return;
   }
   const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"guardarUnidad", datos }) });
@@ -2470,7 +2605,7 @@ async function guardarUnidadNueva(){
   try{
     if (piuraEnDemo()){
       const fila = basePiuraCache.unidades.find(u => normalizarPlaca(u.Placa) === normalizarPlaca(editandoRegistro.clave));
-      if (fila){ fila.Placa = datos.placa; fila["Tipo de Unidad"] = datos.tipoUnidad; fila.RUC = datos.ruc; fila.Proveedor = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
+      if (fila){ fila.Placa = datos.placa; fila["Tipo de Unidad"] = datos.tipoUnidad; fila["Carrocería"] = datos.capacidadPH; fila.RUC = datos.ruc; fila.Proveedor = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
     } else {
       const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"actualizarUnidad", datos }) });
       let data = {};
