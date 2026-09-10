@@ -1,0 +1,2561 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#5B2A9E" />
+<title>Control de Acceso — Transporte de Personal</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+  :root{
+    --bg:#EDEAF7;
+    --bg-2:#E2DCF5;
+    --purple:#5B2A9E;
+    --purple-dark:#3F1D72;
+    --purple-soft:#F1ECFB;
+    --lime:#8FD34B;
+    --lime-soft:#EEF9E2;
+    --card:#FFFFFF;
+    --line:#E3DEF2;
+    --ink:#1E1147;
+    --ink-dim:#7A7395;
+    --alert:#E2574C;
+    --alert-soft:#FBEAE8;
+    --radius:16px;
+    --radius-sm:10px;
+  }
+  @keyframes flashOk{ 0%{ box-shadow:0 0 0 0 rgba(143,211,75,0.55);} 100%{ box-shadow:0 0 0 22px rgba(143,211,75,0);} }
+  @keyframes flashAmber{ 0%{ box-shadow:0 0 0 0 rgba(91,42,158,0.45);} 100%{ box-shadow:0 0 0 22px rgba(91,42,158,0);} }
+  @keyframes popIn{ 0%{ transform:scale(0.92); opacity:0;} 100%{ transform:scale(1); opacity:1;} }
+  @keyframes reticlePulse{ 0%,100%{ opacity:0.55;} 50%{ opacity:1;} }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif;
+    overscroll-behavior:none;
+    -webkit-user-select:none; user-select:none;
+  }
+  h1,h2,h3,.display{ font-family:"Space Grotesk",system-ui,sans-serif; letter-spacing:-0.01em; }
+
+  #app{ max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--bg); }
+
+  .topbar{
+    display:flex; align-items:center; gap:10px;
+    padding:18px 20px;
+    background:var(--purple);
+    color:#fff;
+  }
+  .topbar .back{
+    background:rgba(255,255,255,0.16); border:none; color:#fff; cursor:pointer; padding:7px;
+    line-height:1; display:flex; align-items:center; border-radius:10px;
+  }
+  .topbar .title{ font-size:18px; font-weight:700; flex:1; font-family:"Space Grotesk"; }
+  .topbar .gear{ background:none; border:none; color:#fff; font-size:20px; cursor:pointer; }
+
+  .screen{ flex:1; display:flex; flex-direction:column; padding:22px 20px 32px; gap:16px; }
+  .hidden{ display:none !important; }
+
+  /* ---- Role select ---- */
+  .hero{
+    padding:30px 22px 40px; margin:0 -20px 4px;
+    background:linear-gradient(160deg, var(--purple) 0%, var(--purple-dark) 100%);
+    color:#fff;
+    position:relative;
+    clip-path: polygon(0 0, 100% 0, 100% 84%, 0 100%);
+  }
+  .hero .logo-row{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .hero .logo-badge{
+    width:38px; height:38px; border-radius:11px; flex:none;
+    background:linear-gradient(155deg, #6E3AB5, var(--purple-dark));
+    border:1.5px solid rgba(143,211,75,0.55);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .hero .logo-wordmark{ font-family:"Space Grotesk"; font-weight:700; font-size:14.5px; color:#fff; line-height:1.15; }
+  .hero .logo-wordmark .sub{ display:block; font-weight:500; font-size:10.5px; color:var(--lime); letter-spacing:0.06em; }
+  .hero .eyebrow{ color:var(--lime); font-weight:700; font-size:12.5px; letter-spacing:0.04em; margin-bottom:8px; }
+  .hero h1{ font-size:29px; margin:0 0 8px; color:#fff; }
+  .hero p{ color:rgba(255,255,255,0.82); margin:0; font-size:14.5px; line-height:1.55; max-width:34ch; }
+
+  .role-btn{
+    display:flex; align-items:center; gap:15px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    text-align:left;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(91,42,158,0.08);
+  }
+  .role-btn:active{ background:var(--purple-soft); }
+  .role-btn .icon-chip{
+    width:46px; height:46px; flex:none; border-radius:12px;
+    background:var(--purple-soft); color:var(--purple);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .role-btn .icon-chip svg{ width:24px; height:24px; }
+  .role-btn .label{ font-weight:700; font-size:16.5px; color:var(--ink); }
+  .role-btn .sub{ color:var(--ink-dim); font-size:13px; margin-top:2px; }
+  .role-btn .chev{ margin-left:auto; color:var(--ink-dim); flex:none; }
+
+  /* ---- Forms ---- */
+  label{ font-size:13px; color:var(--ink-dim); display:block; margin-bottom:6px; font-weight:500; }
+  input[type=text], select{
+    width:100%; background:var(--card); border:1.5px solid var(--line); color:var(--ink);
+    padding:14px 12px; border-radius:var(--radius-sm); font-size:16px; font-family:inherit;
+  }
+  input[type=text]:focus, select:focus{ outline:none; border-color:var(--purple); }
+
+  .field{ margin-bottom:2px; }
+
+  .list{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .list-item{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:13px 14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;
+  }
+  .list-item:active{ background:var(--purple-soft); }
+  .list-item .li-main{ min-width:0; flex:1; }
+  .list-item .li-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px; }
+  .list-item .placa{ font-weight:700; font-family:"Space Grotesk"; letter-spacing:0.02em; color:var(--ink); font-size:15.5px; }
+  .list-item .tag{
+    font-size:11px; font-weight:600; color:var(--purple); background:var(--purple-soft);
+    padding:2px 8px; border-radius:999px; white-space:nowrap;
+  }
+  .list-item .li-sub{ color:var(--ink-dim); font-size:12.5px; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .list-item .li-sub.vacio{ font-style:italic; opacity:0.7; }
+  .list-item .chev{ flex:none; color:var(--ink-dim); }
+
+  /* ---- QR card (pase vehicular) ---- */
+  .qr-card{
+    background:var(--card); border-radius:var(--radius);
+    display:flex; flex-direction:column; align-items:center;
+    animation:popIn 0.25s ease-out;
+    overflow:hidden;
+    box-shadow:0 8px 24px rgba(91,42,158,0.12);
+  }
+  .qr-card .qr-top{
+    width:100%; background:var(--purple); color:var(--lime);
+    font-family:"Space Grotesk"; font-weight:700; font-size:12.5px; letter-spacing:0.05em;
+    padding:11px 18px; display:flex; justify-content:space-between;
+  }
+  .qr-card .qr-top span:last-child{ color:rgba(255,255,255,0.8); font-weight:500; }
+  .qr-card .qr-body{ padding:24px 22px 10px; display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .qr-card #qrcode{ background:white; padding:8px; border-radius:8px; border:1px solid var(--line); }
+  .qr-card .placa-big{ color:var(--ink); font-family:"Space Grotesk"; font-weight:700; font-size:26px; letter-spacing:0.03em; }
+  .qr-card .nombre-big{ color:var(--ink-dim); font-size:14px; margin-top:-10px; }
+  .qr-card .qr-perf{
+    width:100%; position:relative; height:1px;
+    border-top:2px dashed var(--line); margin-top:6px;
+  }
+  .qr-perf::before, .qr-perf::after{
+    content:""; position:absolute; top:-9px; width:18px; height:18px; border-radius:50%; background:var(--bg);
+  }
+  .qr-perf::before{ left:-9px; } .qr-perf::after{ right:-9px; }
+  .qr-card .qr-foot{
+    padding:12px 18px 16px; font-size:11.5px; color:var(--ink-dim); text-align:center; letter-spacing:0.03em;
+  }
+
+  /* ---- Garita ---- */
+  .garita-select{ display:flex; gap:8px; align-items:center; }
+  .garita-select select{ flex:1; }
+
+  .scan-wrap{ position:relative; border-radius:var(--radius); overflow:hidden; border:1px solid var(--line); background:#000; }
+  #reader{ background:#000; }
+  .reticle{
+    position:absolute; inset:0; pointer-events:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .reticle .box{ position:relative; width:62%; aspect-ratio:1/1; animation:reticlePulse 2s ease-in-out infinite; }
+  .reticle .box span{ position:absolute; width:26px; height:26px; border:3px solid var(--lime); }
+  .reticle .box span:nth-child(1){ top:0; left:0; border-right:none; border-bottom:none; }
+  .reticle .box span:nth-child(2){ top:0; right:0; border-left:none; border-bottom:none; }
+  .reticle .box span:nth-child(3){ bottom:0; left:0; border-right:none; border-top:none; }
+  .reticle .box span:nth-child(4){ bottom:0; right:0; border-left:none; border-top:none; }
+  .scan-wrap.hit{ animation:flashOk 0.6s ease-out; }
+  .scan-wrap.hit.salida{ animation:flashAmber 0.6s ease-out; }
+
+  .result-banner{
+    border-radius:var(--radius-sm); padding:14px 16px; display:flex; align-items:center; gap:13px;
+    border:1px solid var(--line); border-left:5px solid var(--lime);
+    background:var(--lime-soft);
+    animation:popIn 0.2s ease-out;
+  }
+  .result-banner.salida{ border-left-color:var(--purple); background:var(--purple-soft); }
+  .result-banner.err{ border-left-color:var(--alert); background:var(--alert-soft); }
+  .result-banner .rb-icon{
+    width:34px; height:34px; flex:none; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--lime); color:#1c3a0b;
+  }
+  .result-banner.salida .rb-icon{ background:var(--purple); color:#fff; }
+  .result-banner.err .rb-icon{ background:var(--alert); color:#fff; }
+  .result-banner .badge{
+    font-weight:700; font-family:"Space Grotesk"; font-size:11.5px; letter-spacing:0.04em;
+    color:#4d8a1f; display:block; margin-bottom:1px;
+  }
+  .result-banner.salida .badge{ color:var(--purple); }
+  .result-banner.err .badge{ color:var(--alert); }
+  .result-banner .rb-placa{ font-weight:700; font-family:"Space Grotesk"; font-size:15.5px; color:var(--ink); }
+  .result-banner .rb-hora{ color:var(--ink-dim); font-size:12.5px; }
+
+  .log-title{ color:var(--ink-dim); font-size:12.5px; font-weight:700; margin:6px 0 -4px; }
+  .log-item{
+    display:flex; justify-content:space-between; font-size:13.5px;
+    padding:9px 2px; border-bottom:1px solid var(--line);
+  }
+  .log-item .lp{ font-weight:600; color:var(--ink); }
+  .log-item .lt.entrada{ color:#4d8a1f; font-weight:600; }
+  .log-item .lt.salida{ color:var(--purple); font-weight:600; }
+
+  .btn{
+    background:var(--lime); color:#1c3a0b; border:none; border-radius:999px;
+    padding:15px 20px; font-weight:700; font-size:15px; cursor:pointer; font-family:inherit;
+  }
+  .btn:active{ filter:brightness(0.94); }
+  .btn.ghost{ background:var(--purple-soft); border:1px solid var(--line); color:var(--purple); }
+  .btn.block{ width:100%; }
+
+  .settings-form .field{ margin-bottom:16px; }
+  .hint{ color:var(--ink-dim); font-size:12.5px; line-height:1.5; }
+  .status-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .status-dot.on{ background:var(--lime); }
+  .status-dot.off{ background:var(--ink-dim); }
+
+  .empty{ color:var(--ink-dim); font-size:13.5px; text-align:center; padding:18px 0; }
+
+  .install-tip{
+    font-size:12.5px; color:var(--purple); font-weight:600; text-align:center; padding-top:6px;
+  }
+
+  /* ---- Doc detail panel (garita) ---- */
+  .doc-panel{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    overflow:hidden; animation:popIn 0.2s ease-out;
+  }
+  .doc-panel .doc-sec-title{
+    background:var(--purple-soft); color:var(--purple); font-family:"Space Grotesk";
+    font-weight:700; font-size:11.5px; letter-spacing:0.04em; padding:9px 14px;
+  }
+  .doc-row{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:9px 14px; border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .doc-row:last-child{ border-bottom:none; }
+  .doc-row .dl{ color:var(--ink-dim); }
+  .doc-row .dv{ font-weight:600; color:var(--ink); text-align:right; }
+  .doc-row .dv.ok{ color:#4d8a1f; }
+  .doc-row .dv.warn{ color:#B8860B; }
+  .doc-row .dv.bad{ color:var(--alert); }
+  .doc-empty{ padding:14px; text-align:center; color:var(--ink-dim); font-size:12.5px; }
+
+  /* ---- Conductor DNI gate ---- */
+  .dni-error{ color:var(--alert); font-size:13px; margin-top:8px; }
+
+  /* ---- Selector Entrada/Salida (Garita y Producción) ---- */
+  .tipo-toggle{ display:flex; gap:8px; }
+  .tipo-toggle button{
+    flex:1; padding:12px; border-radius:var(--radius-sm); border:1.5px solid var(--line);
+    background:var(--card); color:var(--ink-dim); font-weight:700; font-size:14px;
+    font-family:inherit; cursor:pointer;
+  }
+  .tipo-toggle button.active{ border-color:var(--purple); background:var(--purple-soft); color:var(--purple); }
+  .tipo-toggle button.active.salida{ border-color:var(--purple); }
+
+  /* ---- Logística: programación semanal ---- */
+  .prog-form{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px; display:flex; flex-direction:column; gap:10px;
+  }
+  .prog-form .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .prog-form select, .prog-form input{
+    width:100%; padding:10px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--line);
+    background:#fff; font-family:inherit; font-size:14px; color:var(--ink);
+  }
+  .prog-days{ display:flex; gap:6px; flex-wrap:wrap; }
+  .prog-day{
+    width:34px; height:34px; border-radius:8px; border:1.5px solid var(--line); background:#fff;
+    color:var(--ink-dim); font-weight:700; font-size:12.5px; cursor:pointer; font-family:inherit;
+  }
+  .prog-day.on{ background:#FFE066; border-color:#E0B800; color:#5c4a00; }
+
+  .prog-table-wrap{ overflow-x:auto; }
+  .prog-table{ border-collapse:collapse; width:100%; font-size:12.5px; min-width:760px; }
+  .prog-table th, .prog-table td{ border:1px solid var(--line); padding:7px 8px; text-align:left; white-space:nowrap; }
+  .prog-table th{ background:var(--purple-soft); color:var(--purple); font-family:"Space Grotesk"; font-size:11px; }
+  .prog-table td.day-on{ background:#FFE066; }
+  .prog-table td.day-off{ background:#fff; }
+  .prog-table .rm-btn{ color:var(--alert); font-weight:700; cursor:pointer; background:none; border:none; font-family:inherit; }
+
+  .prog-week-label{ font-family:"Space Grotesk"; font-weight:700; font-size:14px; color:var(--purple); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ROLE SELECT -->
+  <section id="screen-role" class="screen">
+    <div class="hero">
+      <div class="logo-row">
+        <span class="logo-badge">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+            <path d="M4 4h4v4H4V4Z" stroke="#8FD34B" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M4 5.5h1M5.5 4v1" stroke="#8FD34B" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M16 4h4v4h-4V4Z" stroke="#8FD34B" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M4 16h4v4H4v-4Z" stroke="#8FD34B" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M15.5 15.5 20 20M20 15.5v4.5h-4.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="logo-wordmark">bet<span style="color:var(--lime)">a</span><span class="sub">CONTROL DE ACCESO</span></span>
+      </div>
+      <div class="eyebrow">TRANSPORTE DE PERSONAL</div>
+      <h1>Control de Acceso</h1>
+      <p>Registro de ingreso y salida de unidades por código QR.</p>
+    </div>
+
+    <button class="role-btn" onclick="goTo('conductor')">
+      <span class="icon-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 16V9a1 1 0 0 1 1-1h9l4 4h3a1 1 0 0 1 1 1v3"/>
+          <path d="M3 16h1"/><path d="M14 16H9"/><path d="M19 16h2"/>
+          <circle cx="7" cy="16.5" r="2"/><circle cx="17" cy="16.5" r="2"/>
+        </svg>
+      </span>
+      <span>
+        <div class="label">Soy Conductor</div>
+        <div class="sub">Genero el QR de mi unidad</div>
+      </span>
+      <span class="chev">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </button>
+
+    <button class="role-btn" onclick="abrirPinGarita('garita')">
+      <span class="icon-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="7" width="14" height="12" rx="2"/>
+          <path d="M17 10l4-2v9l-4-2"/>
+          <circle cx="10" cy="13" r="2.6"/>
+        </svg>
+      </span>
+      <span>
+        <div class="label">Soy Garita</div>
+        <div class="sub">Escaneo QR para marcar ingreso/salida</div>
+      </span>
+      <span class="chev">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </button>
+
+    <button class="role-btn" onclick="abrirPinGarita('produccion')">
+      <span class="icon-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/><path d="M7 15l3-4 3 3 5-7"/>
+        </svg>
+      </span>
+      <span>
+        <div class="label">Soy Producción</div>
+        <div class="sub">Escaneo QR para ver datos de la unidad</div>
+      </span>
+      <span class="chev">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </button>
+
+    <button class="role-btn" onclick="abrirPinGarita('logistica')">
+      <span class="icon-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/>
+        </svg>
+      </span>
+      <span>
+        <div class="label">Soy Logística</div>
+        <div class="sub">Armo la programación de la semana</div>
+      </span>
+      <span class="chev">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </button>
+
+    <div style="flex:1"></div>
+    <div style="display:flex; justify-content:center;">
+      <button class="btn ghost" style="font-size:13px; padding:9px 14px; display:inline-flex; align-items:center; gap:7px;" onclick="abrirPinGarita('settings')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Configuración
+      </button>
+    </div>
+    <div class="install-tip" id="install-tip"></div>
+  </section>
+
+  <!-- CONDUCTOR -->
+  <section id="screen-conductor" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="goTo('role')">←</button>
+      <div class="title">Conductor</div>
+    </div>
+
+    <div id="conductor-dni-wrap">
+      <div class="qr-card" style="padding:26px 22px;">
+        <div class="icon-chip" style="width:52px; height:52px; margin-bottom:6px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>
+        </div>
+        <div style="font-weight:700; font-size:16px; text-align:center;">Ingresa tu código (DNI)</div>
+        <p class="hint" style="text-align:center; margin:4px 0 0;">Con tu DNI buscamos el viaje que Logística te programó para hoy.</p>
+        <input type="password" inputmode="numeric" id="dni-input" placeholder="N° de DNI" style="text-align:center; letter-spacing:4px; font-size:20px; margin-top:14px;" maxlength="15" onkeydown="if(event.key==='Enter') verificarDniConductor();">
+        <p class="hint" style="text-align:center; margin-top:6px;">Se muestra oculto, como un código secreto.</p>
+        <div id="dni-error" class="dni-error hidden"></div>
+        <div id="dni-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
+        <button class="btn block" style="margin-top:16px;" onclick="verificarDniConductor()">Ver mi viaje</button>
+      </div>
+    </div>
+
+    <div id="conductor-viajes-wrap" class="hidden">
+      <button class="btn ghost" onclick="volverDni()" style="margin-bottom:14px;">← Ingresar otro DNI</button>
+      <p class="hint" style="margin-bottom:4px;">Tienes más de un viaje programado hoy. Elige cuál:</p>
+      <div id="lista-viajes" class="list"></div>
+    </div>
+
+    <div id="conductor-qr-wrap" class="hidden">
+      <button class="btn ghost" onclick="volverDni()" style="margin-bottom:14px;">← Ingresar otro DNI</button>
+      <div class="qr-card">
+        <div class="qr-top"><span>PASE DE ACCESO</span><span id="qr-zona"></span></div>
+        <div class="qr-body">
+          <div id="qrcode"></div>
+          <div class="placa-big" id="qr-placa"></div>
+          <div class="nombre-big" id="qr-nombre"></div>
+        </div>
+        <div class="qr-perf"></div>
+        <div class="qr-foot">Válido para Transporte de Personal</div>
+      </div>
+      <p class="hint" style="text-align:center; margin-top:10px;">Muestra esta pantalla a garita, o imprime el QR y colócalo en el parabrisas.</p>
+    </div>
+  </section>
+
+  <!-- GARITA PIN GATE -->
+  <section id="screen-garita-pin" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="goTo('role')">←</button>
+      <div class="title" id="pin-gate-title">Acceso</div>
+    </div>
+    <div class="qr-card" style="padding:26px 22px;">
+      <div class="icon-chip" style="width:52px; height:52px; margin-bottom:6px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      </div>
+      <div style="font-weight:700; font-size:16px; text-align:center;">Ingresa el PIN</div>
+      <input type="text" inputmode="numeric" id="pin-input" placeholder="••••" style="text-align:center; letter-spacing:8px; font-size:22px; margin-top:14px;" maxlength="8" onkeydown="if(event.key==='Enter') verificarPinGarita();">
+      <div id="pin-error" class="hidden" style="color:var(--alert); font-size:13px; margin-top:8px;">PIN incorrecto, intenta de nuevo.</div>
+      <button class="btn block" style="margin-top:16px;" onclick="verificarPinGarita()">Ingresar</button>
+    </div>
+  </section>
+
+  <!-- GARITA -->
+  <section id="screen-garita" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="pararScanner(); goTo('role');">←</button>
+      <div class="title">Garita</div>
+    </div>
+
+    <div class="garita-select">
+      <label style="margin:0; white-space:nowrap;">Zona:</label>
+      <select id="garita-zona">
+        <option>Ica</option>
+        <option>Lambayeque</option>
+        <option>Piura</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-bottom:0;">
+      <label>Selecciona antes de escanear</label>
+      <div class="tipo-toggle" id="garita-tipo-toggle">
+        <button type="button" class="active" onclick="seleccionarTipo('garita','Entrada')" id="garita-tipo-entrada">Ingreso</button>
+        <button type="button" onclick="seleccionarTipo('garita','Salida')" id="garita-tipo-salida">Salida</button>
+      </div>
+    </div>
+
+    <div class="scan-wrap" id="scan-wrap">
+      <div id="reader"></div>
+      <div class="reticle"><div class="box"><span></span><span></span><span></span><span></span></div></div>
+    </div>
+
+    <div id="garita-result"></div>
+    <div id="garita-doc"></div>
+
+    <div class="log-title">Últimos registros</div>
+    <div id="garita-log" class="list"></div>
+  </section>
+
+  <!-- PRODUCCIÓN -->
+  <section id="screen-produccion" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="pararScannerProduccion(); goTo('role');">←</button>
+      <div class="title">Producción</div>
+    </div>
+
+    <div class="field" style="margin-bottom:0;">
+      <label>Selecciona antes de escanear</label>
+      <div class="tipo-toggle" id="produccion-tipo-toggle">
+        <button type="button" class="active" onclick="seleccionarTipo('produccion','Entrada')" id="produccion-tipo-entrada">Ingreso</button>
+        <button type="button" onclick="seleccionarTipo('produccion','Salida')" id="produccion-tipo-salida">Salida</button>
+      </div>
+    </div>
+
+    <div class="scan-wrap" id="scan-wrap-produccion">
+      <div id="reader-produccion"></div>
+      <div class="reticle"><div class="box"><span></span><span></span><span></span><span></span></div></div>
+    </div>
+
+    <div id="produccion-bloqueo"></div>
+
+    <div id="produccion-carga-form" class="prog-form hidden">
+      <div style="font-weight:700;" id="produccion-carga-placa"></div>
+      <div class="row2">
+        <div>
+          <label class="hint">Peso</label>
+          <input type="text" id="prod-peso" placeholder="Ej. 850 kg">
+        </div>
+        <div>
+          <label class="hint">Cantidad de jabas</label>
+          <input type="text" id="prod-jabas" placeholder="Ej. 120">
+        </div>
+      </div>
+      <div class="row2">
+        <button class="btn ghost" onclick="cancelarPedateoProduccion()">Cancelar</button>
+        <button class="btn" onclick="confirmarPedateoProduccion()">Confirmar pedateo</button>
+      </div>
+    </div>
+
+    <div id="produccion-result"></div>
+
+    <div class="log-title">Últimos registros</div>
+    <div id="produccion-log" class="list"></div>
+  </section>
+
+  <!-- LOGÍSTICA -->
+  <section id="screen-logistica" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="goTo('role')">←</button>
+      <div class="title">Logística</div>
+    </div>
+    <button class="role-btn" onclick="goTo('logistica-registrar')">
+      <span class="icon-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+      </span>
+      <span>
+        <div class="label">Registrar</div>
+        <div class="sub">Dar de alta un conductor o una unidad nueva</div>
+      </span>
+      <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+    <button class="role-btn" onclick="goTo('logistica-programar')">
+      <span class="icon-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>
+      </span>
+      <span>
+        <div class="label">Programar</div>
+        <div class="sub">Armar la programación de viajes de la semana</div>
+      </span>
+      <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+  </section>
+
+  <!-- LOGÍSTICA: REGISTRAR (alta de conductor/unidad) -->
+  <section id="screen-logistica-registrar" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="goTo('logistica')">←</button>
+      <div class="title">Registrar</div>
+    </div>
+
+    <div class="field">
+      <label for="registrar-buscar">Buscar proveedor, conductor o placa ya existente</label>
+      <input type="text" id="registrar-buscar" placeholder="Nombre, RUC, DNI o placa..." autocomplete="off" oninput="buscarEnRegistrar()">
+    </div>
+    <div id="registrar-buscar-resultados" class="list"></div>
+
+    <div id="registrar-editando-banner" class="result-banner salida hidden" style="margin:2px 0;">
+      <span class="rb-icon">✎</span>
+      <span style="flex:1;">
+        <span class="badge">EDITANDO</span>
+        <div class="rb-placa" id="registrar-editando-texto"></div>
+      </span>
+      <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="cancelarEdicionRegistro()">Cancelar</button>
+    </div>
+
+    <div class="tipo-toggle" id="registrar-tipo-toggle">
+      <button type="button" class="active" onclick="seleccionarTipoRegistro('proveedor')" id="registrar-tipo-proveedor">Proveedor</button>
+      <button type="button" onclick="seleccionarTipoRegistro('conductor')" id="registrar-tipo-conductor">Conductor</button>
+      <button type="button" onclick="seleccionarTipoRegistro('unidad')" id="registrar-tipo-unidad">Unidad</button>
+    </div>
+
+    <div id="registrar-form-proveedor" class="prog-form">
+      <div class="row2">
+        <div><label class="hint">RUC</label><input type="text" id="reg-p-ruc" placeholder="10708507046"></div>
+        <div><label class="hint">Proveedor (razón social)</label><input type="text" id="reg-p-nombre" placeholder="Nombre del proveedor"></div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Zona</label>
+          <select id="reg-p-zona"><option>Ica</option><option>Lambayeque</option><option selected>Piura</option></select>
+        </div>
+        <div><label class="hint">Sede</label><input type="text" id="reg-p-sede" placeholder="F.PIURA"></div>
+      </div>
+      <button class="btn block" id="reg-p-btn-guardar" onclick="guardarProveedorNuevo()">Guardar proveedor</button>
+      <p class="hint" style="text-align:center; margin:0;" id="reg-p-ayuda">Regístralo primero: así aparece en el selector de Proveedor al dar de alta su Conductor y su Unidad.</p>
+
+      <div id="reg-p-atajos" class="row2 hidden" style="border-top:1px dashed var(--line); padding-top:12px; margin-top:4px;">
+        <button class="btn ghost block" onclick="irAAgregarDesdeProveedor('unidad')">+ Agregar Unidad</button>
+        <button class="btn ghost block" onclick="irAAgregarDesdeProveedor('conductor')">+ Agregar Conductor</button>
+      </div>
+    </div>
+
+    <div id="registrar-form-conductor" class="prog-form hidden">
+      <div class="row2">
+        <div><label class="hint">DNI</label><input type="text" id="reg-c-dni" inputmode="numeric" placeholder="12345678"></div>
+        <div><label class="hint">Conductor (nombre completo)</label><input type="text" id="reg-c-nombre" placeholder="Nombre y apellidos"></div>
+      </div>
+      <div class="row2">
+        <div><label class="hint">RUC (del proveedor)</label><input type="text" id="reg-c-ruc" placeholder="10708507046"></div>
+        <div>
+          <label class="hint">Proveedor</label>
+          <input type="text" id="reg-c-proveedor" readonly style="background:var(--purple-soft);" placeholder="Ve a la pestaña Proveedor primero">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Zona</label>
+          <select id="reg-c-zona"><option>Ica</option><option>Lambayeque</option><option selected>Piura</option></select>
+        </div>
+        <div><label class="hint">Sede</label><input type="text" id="reg-c-sede" placeholder="F.PIURA"></div>
+      </div>
+      <div class="row2">
+        <div><label class="hint">N° de Licencia</label><input type="text" id="reg-c-licencia" placeholder="03320500"></div>
+        <div><label class="hint">Categoría de Licencia</label><input type="text" id="reg-c-categoria" placeholder="A IIIc"></div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Fecha de Revalidación (Licencia)</label>
+          <input type="date" id="reg-c-fecha-lic" oninput="previsualizarAlerta('reg-c-fecha-lic','reg-c-alerta-lic')">
+        </div>
+        <div>
+          <label class="hint">Alerta (automática)</label>
+          <input type="text" id="reg-c-alerta-lic" readonly style="background:var(--purple-soft);">
+        </div>
+      </div>
+      <div class="row2">
+        <div><label class="hint">Tipo de SCTR</label><input type="text" id="reg-c-tiposctr" placeholder="Salud / Pensión"></div>
+        <div><label class="hint">Aseguradora SCTR</label><input type="text" id="reg-c-aseguradora-sctr" placeholder="Rímac, Pacífico, etc."></div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Fecha Vencimiento SCTR</label>
+          <input type="date" id="reg-c-fecha-sctr" oninput="previsualizarAlerta('reg-c-fecha-sctr','reg-c-alerta-sctr')">
+        </div>
+        <div>
+          <label class="hint">Alerta (automática)</label>
+          <input type="text" id="reg-c-alerta-sctr" readonly style="background:var(--purple-soft);">
+        </div>
+      </div>
+      <button class="btn block hidden" id="reg-c-btn-agregar" onclick="agregarConductorALista()">+ Agregar conductor a la lista</button>
+      <button class="btn block" id="reg-c-btn-guardar" onclick="guardarConductorNuevo()">Guardar cambios</button>
+
+      <div id="reg-c-lista-wrap" class="hidden" style="border-top:1px dashed var(--line); padding-top:12px; margin-top:4px;">
+        <label class="hint">Conductores en la lista</label>
+        <div id="reg-c-lista" class="list"></div>
+        <button class="btn block" style="margin-top:8px;" id="reg-c-btn-guardar-todas" onclick="guardarTodosConductores()">Guardar conductores</button>
+      </div>
+
+      <div id="reg-c-baja-wrap" class="hidden" style="border-top:1px dashed var(--line); padding-top:12px; margin-top:4px;">
+        <label class="hint" style="color:var(--alert);">Este conductor ya no trabaja aquí</label>
+        <input type="text" id="reg-c-reemplazo" placeholder="Nombre del conductor de reemplazo" style="margin-top:6px;">
+        <button class="btn ghost block" style="margin-top:8px; color:var(--alert); border-color:var(--alert);" onclick="darDeBajaConductor()">Marcar como inactivo y registrar reemplazo</button>
+      </div>
+    </div>
+
+    <div id="registrar-form-unidad" class="prog-form hidden">
+      <div class="row2">
+        <div><label class="hint">Placa</label><input type="text" id="reg-u-placa" placeholder="ABC-123"></div>
+        <div><label class="hint">Tipo de Unidad</label><input type="text" id="reg-u-tipo" placeholder="CAMION"></div>
+      </div>
+      <div class="row2">
+        <div><label class="hint">RUC (del proveedor)</label><input type="text" id="reg-u-ruc" placeholder="10708507046"></div>
+        <div>
+          <label class="hint">Proveedor</label>
+          <input type="text" id="reg-u-proveedor" readonly style="background:var(--purple-soft);" placeholder="Ve a la pestaña Proveedor primero">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Zona</label>
+          <select id="reg-u-zona"><option>Ica</option><option>Lambayeque</option><option selected>Piura</option></select>
+        </div>
+        <div><label class="hint">Sede</label><input type="text" id="reg-u-sede" placeholder="F.PIURA"></div>
+      </div>
+      <div class="row2">
+        <div><label class="hint">N° Pasajeros</label><input type="number" id="reg-u-pasajeros"></div>
+        <div><label class="hint">Año de Fabricación</label><input type="number" id="reg-u-anio" placeholder="2015"></div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Fecha Vencimiento SOAT</label>
+          <input type="date" id="reg-u-fecha-soat" oninput="previsualizarAlerta('reg-u-fecha-soat','reg-u-alerta-soat')">
+        </div>
+        <div>
+          <label class="hint">Alerta (automática)</label>
+          <input type="text" id="reg-u-alerta-soat" readonly style="background:var(--purple-soft);">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Fecha Vencimiento RTV</label>
+          <input type="date" id="reg-u-fecha-rtv" oninput="previsualizarAlerta('reg-u-fecha-rtv','reg-u-alerta-rtv')">
+        </div>
+        <div>
+          <label class="hint">Alerta (automática)</label>
+          <input type="text" id="reg-u-alerta-rtv" readonly style="background:var(--purple-soft);">
+        </div>
+      </div>
+      <div>
+        <label class="hint">¿Tiene Tarjeta de Circulación (T.C.)?</label>
+        <div class="tipo-toggle">
+          <button type="button" id="reg-u-tc-si" onclick="seleccionarTieneTC(true)">Sí</button>
+          <button type="button" class="active" id="reg-u-tc-no" onclick="seleccionarTieneTC(false)">No</button>
+        </div>
+      </div>
+      <div class="row2 hidden" id="reg-u-tc-wrap">
+        <div>
+          <label class="hint">Fecha Vencimiento T.C.</label>
+          <input type="date" id="reg-u-fecha-tc" oninput="previsualizarAlerta('reg-u-fecha-tc','reg-u-alerta-tc')">
+        </div>
+        <div>
+          <label class="hint">Alerta (automática)</label>
+          <input type="text" id="reg-u-alerta-tc" readonly style="background:var(--purple-soft);">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Estado de la Unidad</label>
+          <select id="reg-u-estado"><option>PROPIA</option><option>ARRENDADA</option></select>
+        </div>
+        <div>
+          <label class="hint">¿Cuenta con Póliza RC?</label>
+          <select id="reg-u-poliza"><option>NO</option><option>SI</option></select>
+        </div>
+      </div>
+      <button class="btn block hidden" id="reg-u-btn-agregar" onclick="agregarUnidadALista()">+ Agregar unidad a la lista</button>
+      <button class="btn block" id="reg-u-btn-guardar" onclick="guardarUnidadNueva()">Guardar cambios</button>
+
+      <div id="reg-u-lista-wrap" class="hidden" style="border-top:1px dashed var(--line); padding-top:12px; margin-top:4px;">
+        <label class="hint">Unidades en la lista</label>
+        <div id="reg-u-lista" class="list"></div>
+        <button class="btn block" style="margin-top:8px;" id="reg-u-btn-guardar-todas" onclick="guardarTodasUnidades()">Guardar unidades y continuar a Conductor</button>
+      </div>
+    </div>
+
+    <div id="registrar-msg" class="hint" style="text-align:center; margin-top:6px;"></div>
+  </section>
+
+  <!-- LOGÍSTICA: PROGRAMAR (programación semanal) -->
+  <section id="screen-logistica-programar" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="goTo('logistica')">←</button>
+      <div class="title">Programar</div>
+    </div>
+
+    <div class="field">
+      <label for="prog-fecha">Fecha de referencia de la semana</label>
+      <input type="date" id="prog-fecha" onchange="renderTablaProgramacion()">
+    </div>
+    <div class="prog-week-label" id="prog-week-label"></div>
+
+    <div class="prog-form">
+      <div>
+        <label class="hint">Proveedor</label>
+        <select id="prog-proveedor" onchange="onCambioProveedorLogistica()"></select>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Conductor</label>
+          <select id="prog-conductor"></select>
+        </div>
+        <div>
+          <label class="hint">Placa</label>
+          <select id="prog-placa"></select>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Capacidad</label>
+          <select id="prog-ph" onchange="recalcularTarifaLogistica()">
+            <option value="10 PH">10 PH</option>
+            <option value="12 PH">12 PH</option>
+            <option value="14 PH">14 PH</option>
+          </select>
+        </div>
+        <div>
+          <label class="hint">Cantidad de Viajes</label>
+          <input type="number" id="prog-cant-viajes" min="1" step="1" placeholder="1">
+        </div>
+      </div>
+      <div>
+        <label class="hint">Ruta</label>
+        <select id="prog-ruta" onchange="recalcularTarifaLogistica()"></select>
+      </div>
+      <div>
+        <label class="hint">Operación</label>
+        <select id="prog-operacion">
+          <option value="TRASLADO DE MP">TRASLADO DE MP</option>
+          <option value="TRASLADO DE JABAS">TRASLADO DE JABAS</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Tarifa</label>
+          <input type="text" id="prog-tarifa" placeholder="Se calcula según ruta y tamaño" oninput="recalcularTarifaTotal()">
+        </div>
+        <div>
+          <label class="hint">Descuento</label>
+          <input type="text" id="prog-descuento" placeholder="0" oninput="recalcularTarifaTotal()">
+        </div>
+      </div>
+      <div>
+        <label class="hint">Tarifa Total (se guarda esta)</label>
+        <input type="text" id="prog-tarifa-total" readonly style="background:var(--purple-soft); font-weight:700;">
+      </div>
+      <div>
+        <label class="hint">Clasificación</label>
+        <input type="text" id="prog-clasificacion" placeholder="Normal / Adicional">
+      </div>
+      <div>
+        <label class="hint">Días de la semana</label>
+        <div class="prog-days" id="prog-days">
+          <button type="button" class="prog-day" data-dia="L" onclick="toggleDiaForm(this)">L</button>
+          <button type="button" class="prog-day" data-dia="M1" onclick="toggleDiaForm(this)">M</button>
+          <button type="button" class="prog-day" data-dia="M2" onclick="toggleDiaForm(this)">M</button>
+          <button type="button" class="prog-day" data-dia="J" onclick="toggleDiaForm(this)">J</button>
+          <button type="button" class="prog-day" data-dia="V" onclick="toggleDiaForm(this)">V</button>
+          <button type="button" class="prog-day" data-dia="S" onclick="toggleDiaForm(this)">S</button>
+          <button type="button" class="prog-day" data-dia="D" onclick="toggleDiaForm(this)">D</button>
+        </div>
+      </div>
+      <button class="btn block" onclick="agregarFilaProgramacion()">+ Agregar a la programación</button>
+    </div>
+
+    <div class="prog-table-wrap">
+      <table class="prog-table" id="prog-table"></table>
+    </div>
+
+    <button class="btn block" style="margin-top:6px;" onclick="guardarProgramacion()">Guardar programación de la semana</button>
+    <div id="prog-guardar-msg" class="hint" style="text-align:center; margin-top:6px;"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="screen-settings" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="goTo('role')">←</button>
+      <div class="title">Configuración</div>
+    </div>
+
+    <div class="settings-form">
+      <div class="field">
+        <label>Estado de conexión</label>
+        <div><span class="status-dot" id="conn-dot-u"></span><span id="conn-text-u"></span></div>
+        <div style="margin-top:4px;"><span class="status-dot" id="conn-dot-r"></span><span id="conn-text-r"></span></div>
+      </div>
+      <div class="field">
+        <label for="registro-url">URL del Apps Script — Registro de Accesos</label>
+        <input type="text" id="registro-url" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <div class="field">
+        <label for="piura-url">URL del Apps Script — Base Piura (Proveedores/Conductores/Unidades/Rutas, documentación SOAT-RTV-SCTR y Programación)</label>
+        <input type="text" id="piura-url" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <div class="field">
+        <label for="pin-nuevo">PIN de acceso a Garita</label>
+        <input type="text" inputmode="numeric" id="pin-nuevo" placeholder="1234" maxlength="8">
+      </div>
+      <button class="btn block" onclick="guardarConfig()">Guardar</button>
+      <button class="btn ghost block" style="margin-top:10px;" onclick="usarDemo()">Usar modo demo (datos de prueba)</button>
+      <p class="hint" style="margin-top:14px;">
+        Las placas, conductores y su documentación (SOAT/RTV/SCTR) salen de la Base Piura. Cada marcación (pedateo) se guarda en la hoja "Registro Accesos QR". Solo cambia estas URLs si te pasan un nuevo despliegue.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* =========================================================
+   CONFIG / DATA LAYER
+
+   Base Piura — Apps Script (BasePiura_CodeGS.js):
+   GET  {url}?hoja=PROVEEDORES|CONDUCTORES|UNIDADES|RUTAS ESTABLECIDAS|Programacion
+        -> CSV de esa hoja (fila 1 = headers), de ahí salen placas,
+           conductores, documentación (SOAT/RTV/SCTR) y la programación.
+   POST {url} body: {action:"guardarProgramacion", fecha, filas:[...]}
+        -> guarda la programación semanal en la pestaña "Programacion".
+
+   Registro de accesos — Apps Script propio "Registro Accesos QR":
+   POST {url} body: {action:"marcarAcceso", placa, zona, conductor, tipo, origen, ...}
+        -> {tipo, hora, viaje}
+   GET  {url}?action=verificarGarita&placa=...&fecha=... -> {existe, viaje}
+   ========================================================= */
+
+const LS_KEYS = { registroUrl: "acc_registro_url", piuraUrl: "acc_piura_url", registros: "acc_registros_demo", programacion: "acc_programacion_demo" };
+
+// Apps Script de la hoja "Registro Accesos QR" — ahí se guarda cada Entrada/Salida.
+const DEFAULT_REGISTRO_URL = "https://script.google.com/macros/s/AKfycbzQEPQ0XBMDBWbes6b2OwCGrbNAPFMqvZufaegje8Ak0hfM_Ag1jL4ZD02G86uLWGLXyg/exec";
+
+function getRegistroUrl(){
+  const o = localStorage.getItem(LS_KEYS.registroUrl);
+  if (o === "__demo__") return "";
+  return o || DEFAULT_REGISTRO_URL;
+}
+// Apps Script de la Base Piura (BasePiura_CodeGS.js) — proveedores, conductores,
+// unidades, rutas y programación salen de aquí.
+const DEFAULT_PIURA_URL = "https://script.google.com/macros/s/AKfycbxMPbU4bPHK2YBCJnazqIb1WT4wLGZgYZgLogn3Yjb4xT9uzekdEnIk2MpuH5U8GWF4/exec";
+function getPiuraUrl(){
+  const o = localStorage.getItem(LS_KEYS.piuraUrl);
+  if (o === "__demo__") return "";
+  return o || DEFAULT_PIURA_URL;
+}
+function registroEnDemo(){ return !getRegistroUrl(); }
+function piuraEnDemo(){ return !getPiuraUrl(); }
+function programacionEnDemo(){ return piuraEnDemo(); } // la Programación se guarda en el mismo Apps Script/Sheet de la base Piura
+
+function normalizarPlaca(p){ return (p || "").toString().trim().toUpperCase().replace(/[\s-]+/g, ""); }
+function normalizarDNI(d){ return (d || "").toString().trim().replace(/\D+/g, ""); }
+// Sin tildes: los nombres de Sheets no siempre son consistentes con los
+// acentos, y qrcode.js (versión 1.0.0) se rompe ("code length overflow") al
+// codificar texto con tildes/ñ en el QR — por eso también se usa para
+// construir el contenido del QR del viaje.
+function quitarAcentos(s){ return (s || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+function normalizarNombre(n){ return quitarAcentos(n).trim().toUpperCase().replace(/\s+/g, " "); }
+
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQuotes){
+      if (c === '"'){
+        if (text[i+1] === '"'){ field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ",") { row.push(field); field = ""; }
+      else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+      else if (c === "\r") { /* skip */ }
+      else field += c;
+    }
+  }
+  if (field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Convierte cualquier CSV en una lista de objetos usando la primera fila
+// como encabezados (tal cual, sin necesidad de conocer los campos de antemano).
+// Se usa para toda la base de Piura (Proveedores/Conductores/Unidades/Rutas/Programación).
+function parseCSVObjetos(text){
+  const rows = parseCSV((text || "").trim());
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1)
+    .filter(r => r.some(c => (c || "").toString().trim() !== ""))
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = (r[i] || "").toString().trim());
+      return obj;
+    });
+}
+
+// Datos de ejemplo (los mismos de tu Excel) para poder probar toda la app
+// en modo demo mientras no configures la URL real de esta base.
+const DEMO_PIURA = {
+  proveedores: [
+    { RUC:"10708507046", PROVEEDOR:"OROZCO CUEVA ABRAHAM JUNIORS", ESTADO:"POR INGRESAR", "CATEGORIA SERV.":"MATERIA PRIMA", ZONA:"PIURA", SEDE:"F.PIURA", RESPONSABLE:"EODAR" },
+    { RUC:"10708706511", PROVEEDOR:"SAAVEDRA MONTERO ERICSON MARTIN", ESTADO:"POR INGRESAR", "CATEGORIA SERV.":"MATERIA PRIMA", ZONA:"PIURA", SEDE:"F.PIURA", RESPONSABLE:"EODAR" },
+  ],
+  conductores: [
+    { DNI:"03320500", Conductor:"Abraham José Orozco Hidalgo", RUC:"10708507046", PROVEEDOR:"OROZCO CUEVA ABRAHAM JUNIORS", ZONA:"PIURA", "Fecha de Revalidación":"27/10/2027", "ALERETA LIC.":"VIGENTE", "Aseguradora SCTR":"", "Tipo de SCTR":"", "Fecha Vencimiento SCTR":"", "ALERTA SCTR":"FALTA" },
+    { DNI:"70870651", Conductor:"SAAVEDRA MONTERO ERICSON MARTIN", RUC:"10708706511", PROVEEDOR:"SAAVEDRA MONTERO ERICSON MARTIN", ZONA:"PIURA", "Fecha de Revalidación":"03/06/2029", "ALERETA LIC.":"VIGENTE", "Aseguradora SCTR":"", "Tipo de SCTR":"", "Fecha Vencimiento SCTR":"", "ALERTA SCTR":"FALTA" },
+  ],
+  unidades: [
+    { Placa:"C9K825", "Tipo de Unidad":"CAMION", RUC:"10708507046", Proveedor:"OROZCO CUEVA ABRAHAM JUNIORS", "N° Pasajeros":"4", ZONA:"PIURA", "Fecha Vencimiento SOAT":"18/09/2026", "Alerta SOAT":"POR VENCER", "Fecha Vencimiento RTV":"04/08/2027", "Alerta RTV":"VIGENTE", "¿Tiene T.C.?":"NO", "Cuenta con Poliza RC":"NO", "Estado de la Unidad":"PROPIA" },
+    { Placa:"S1O856", "Tipo de Unidad":"CAMION", RUC:"10708706511", Proveedor:"SAAVEDRA MONTERO ERICSON MARTIN", "N° Pasajeros":"2", ZONA:"PIURA", "Fecha Vencimiento SOAT":"29/06/2027", "Alerta SOAT":"VIGENTE", "Fecha Vencimiento RTV":"01/09/2027", "Alerta RTV":"VIGENTE", "¿Tiene T.C.?":"NO", "Cuenta con Poliza RC":"NO", "Estado de la Unidad":"ARRENDADA" },
+  ],
+  rutas: [
+    { RUTA:"ENCANTADA -> PLANTA RECRIA", "KM IDA VUELTA":"25", "CANTIDAD DE VUELTAS":"4", "TOTAL DE KILOMETROS":"100", "10 PH":"520", "12 PH":"570", "14 PH":"630" },
+    { RUTA:"HUAPALAS -> PLATA RECRIA", "KM IDA VUELTA":"24", "CANTIDAD DE VUELTAS":"4", "TOTAL DE KILOMETROS":"96", "10 PH":"520", "12 PH":"570", "14 PH":"630" },
+    { RUTA:"BELEN -> PLANTA RECRIA", "KM IDA VUELTA":"36", "CANTIDAD DE VUELTAS":"3", "TOTAL DE KILOMETROS":"108", "10 PH":"545", "12 PH":"590", "14 PH":"640" },
+    { RUTA:"CRUZ VERDE -> PLANTA RECRIA", "KM IDA VUELTA":"62", "CANTIDAD DE VUELTAS":"3", "TOTAL DE KILOMETROS":"186", "10 PH":"660", "12 PH":"720", "14 PH":"775" },
+  ],
+  programacion: [
+    { Fecha: new Date().toISOString().slice(0,10), "Guardado el":"", Proveedor:"OROZCO CUEVA ABRAHAM JUNIORS", Conductor:"Abraham José Orozco Hidalgo", Placa:"C9K825", Viaje:"1", Capacidad:"10 PH", Ruta:"ENCANTADA -> PLANTA RECRIA", "Operación":"Traslado de fruta", Tarifa:"520", Descuento:"0", "Tarifa Total":"520", "Clasificación":"Normal",
+      Lunes:"X", Martes:"X", "Miércoles":"X", Jueves:"X", Viernes:"X", "Sábado":"X", Domingo:"X" },
+    { Fecha: new Date().toISOString().slice(0,10), "Guardado el":"", Proveedor:"OROZCO CUEVA ABRAHAM JUNIORS", Conductor:"Abraham José Orozco Hidalgo", Placa:"C9K825", Viaje:"2", Capacidad:"12 PH", Ruta:"HUAPALAS -> PLATA RECRIA", "Operación":"Traslado de fruta", Tarifa:"570", Descuento:"20", "Tarifa Total":"550", "Clasificación":"Normal",
+      Lunes:"X", Martes:"X", "Miércoles":"X", Jueves:"X", Viernes:"X", "Sábado":"X", Domingo:"X" },
+  ],
+};
+
+let basePiuraCache = null;
+async function cargarBasePiura(){
+  if (piuraEnDemo()){
+    basePiuraCache = DEMO_PIURA;
+    construirCachesDocumentacion();
+    return basePiuraCache;
+  }
+  try{
+    const hojas = ["PROVEEDORES", "CONDUCTORES", "UNIDADES", "RUTAS ESTABLECIDAS", "Programacion"];
+    const [pText, cText, uText, rText, prText] = await Promise.all(
+      hojas.map(h => fetch(getPiuraUrl() + "?hoja=" + encodeURIComponent(h)).then(r => r.text()))
+    );
+    basePiuraCache = {
+      proveedores: parseCSVObjetos(pText),
+      conductores: parseCSVObjetos(cText),
+      unidades: parseCSVObjetos(uText),
+      rutas: parseCSVObjetos(rText),
+      programacion: parseCSVObjetos(prText),
+    };
+  }catch(e){
+    console.error(e);
+    basePiuraCache = { proveedores:[], conductores:[], unidades:[], rutas:[], programacion:[] };
+  }
+  construirCachesDocumentacion();
+  return basePiuraCache;
+}
+
+// Caches en memoria con la documentación (SOAT/RTV/SCTR/Licencia), indexadas
+// por placa / nombre de conductor / DNI normalizados. Todo sale de la base
+// Piura — ya no hay una hoja "Unidades" aparte.
+let docUnidadesPorPlaca = {};
+let docConductoresPorNombre = {};
+let conductorPorDNI = {}; // dni -> fila completa de CONDUCTORES (incluye Conductor, Proveedor, etc.)
+let docCacheCargado = false;
+
+function construirCachesDocumentacion(){
+  docUnidadesPorPlaca = {};
+  docConductoresPorNombre = {};
+  conductorPorDNI = {};
+  (basePiuraCache.unidades || []).forEach(u => {
+    if (u.Placa) docUnidadesPorPlaca[normalizarPlaca(u.Placa)] = u;
+  });
+  (basePiuraCache.conductores || []).forEach(c => {
+    if (c.Conductor) docConductoresPorNombre[normalizarNombre(c.Conductor)] = c;
+    if (c.DNI) conductorPorDNI[normalizarDNI(c.DNI)] = c;
+  });
+  docCacheCargado = true;
+}
+
+// Se mantiene por compatibilidad con las pantallas que ya cargan la
+// documentación "en segundo plano" al entrar — ahora es un alias directo.
+async function cargarDocumentacion(){
+  if (!basePiuraCache) await cargarBasePiura();
+  else construirCachesDocumentacion();
+}
+
+function getRegistrosDemo(){
+  const raw = localStorage.getItem(LS_KEYS.registros);
+  return raw ? JSON.parse(raw) : [];
+}
+function saveRegistrosDemo(list){
+  localStorage.setItem(LS_KEYS.registros, JSON.stringify(list));
+}
+
+async function marcarAcceso(placa, zona, conductor, tipo, origen, extra){
+  extra = extra || {};
+  // Si viene una hora de carga (pedateo de Producción), esa ES la hora del
+  // registro — no se guardan dos marcas de tiempo distintas para lo mismo.
+  const horaISO = extra.horaCarga || new Date().toISOString();
+  // El número de viaje ya NO se calcula acá — lo asigna Logística en la
+  // Programación y viaja en el QR (o lo pasa quien llame a esta función).
+  const viaje = extra.viaje || "1";
+  if (registroEnDemo()){
+    const regs = getRegistrosDemo();
+    const registro = { placa, zona, conductor, tipo, hora: horaISO, origen, ...extra, horaCarga: horaISO, viaje };
+    regs.push(registro);
+    saveRegistrosDemo(regs);
+    return registro;
+  }
+  const res = await fetch(getRegistroUrl(), {
+    method: "POST",
+    body: JSON.stringify({ action:"marcarAcceso", placa, zona, conductor, tipo, origen, ...extra, horaCarga: horaISO, viaje })
+  });
+  let data = {};
+  try{ data = await res.json(); }catch(e){}
+  if (data && data.error) throw new Error(data.error);
+  return { placa, zona, conductor, tipo: data.tipo || tipo, hora: data.hora || horaISO, origen, ...extra, horaCarga: horaISO, viaje: data.viaje || viaje };
+}
+
+// Verifica si Garita ya validó (Entrada) esta Placa + N° de Viaje hoy —
+// requisito obligatorio antes de que Producción pueda pedatear ese viaje.
+async function verificarPedateoGarita(placa, viaje){
+  const hoy = new Date().toISOString().slice(0, 10);
+  const normPlaca = normalizarPlaca(placa);
+  const viajeTxt = (viaje || "1").toString().trim();
+  if (registroEnDemo()){
+    const existeEntrada = getRegistrosDemo().some(r =>
+      normalizarPlaca(r.placa) === normPlaca && (r.viaje || "1").toString().trim() === viajeTxt &&
+      r.origen === "Garita" && r.tipo === "Entrada" && (r.hora || "").slice(0, 10) === hoy
+    );
+    return { existe: existeEntrada, viaje: viajeTxt };
+  }
+  try{
+    const url = getRegistroUrl() + "?action=verificarGarita&placa=" + encodeURIComponent(placa) + "&viaje=" + encodeURIComponent(viajeTxt) + "&fecha=" + hoy;
+    const res = await fetch(url);
+    const data = await res.json();
+    return { existe: !!(data && data.existe), viaje: viajeTxt };
+  }catch(e){
+    console.error(e);
+    return { existe:false, viaje: viajeTxt }; // si no se puede verificar, no se arriesga a dejar pasar
+  }
+}
+
+function formatHora(iso){
+  const d = new Date(iso);
+  return d.toLocaleTimeString("es-PE", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+const DEFAULT_GARITA_PIN = "1234";
+function getGaritaPin(){ return localStorage.getItem("acc_garita_pin") || DEFAULT_GARITA_PIN; }
+
+let pinDestino = "garita";
+const PIN_GATE_TITULOS = { garita: "Acceso Garita", produccion: "Acceso Producción", logistica: "Acceso Logística", settings: "Configuración" };
+function abrirPinGarita(destino){
+  pinDestino = destino || "garita";
+  document.getElementById("pin-gate-title").textContent = PIN_GATE_TITULOS[pinDestino] || "Acceso";
+  goTo("garita-pin");
+  const input = document.getElementById("pin-input");
+  input.value = "";
+  document.getElementById("pin-error").classList.add("hidden");
+  setTimeout(() => input.focus(), 50);
+}
+function verificarPinGarita(){
+  const val = document.getElementById("pin-input").value.trim();
+  if (val === getGaritaPin()){
+    goTo(pinDestino);
+  } else {
+    document.getElementById("pin-error").classList.remove("hidden");
+  }
+}
+function goTo(screen){
+  document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+  document.getElementById("screen-" + screen).classList.remove("hidden");
+  if (screen === "conductor") initConductor();
+  if (screen === "garita") initGarita();
+  if (screen === "produccion") initProduccion();
+  if (screen === "logistica-programar") initLogistica();
+  if (screen === "logistica-registrar") initRegistrar();
+  if (screen === "settings") initSettings();
+}
+
+/* =========================================================
+   SELECTOR MANUAL DE ENTRADA/SALIDA (Garita y Producción)
+   ========================================================= */
+let tipoSeleccionado = { garita: "Entrada", produccion: "Entrada" };
+function seleccionarTipo(pantalla, tipo){
+  tipoSeleccionado[pantalla] = tipo;
+  const btnEntrada = document.getElementById(pantalla + "-tipo-entrada");
+  const btnSalida = document.getElementById(pantalla + "-tipo-salida");
+  btnEntrada.classList.toggle("active", tipo === "Entrada");
+  btnSalida.classList.toggle("active", tipo === "Salida");
+  btnSalida.classList.toggle("salida", tipo === "Salida");
+}
+
+/* =========================================================
+   CONDUCTOR SCREEN
+   El conductor solo ingresa su DNI (código secreto). Con eso se
+   busca su viaje programado para HOY en la hoja "Programacion"
+   (armada por Logística: cruce de Proveedor + Conductor + Placa
+   + días de la semana) y se genera el QR de ese viaje.
+   ========================================================= */
+const DIA_COL_HOY = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"]; // Date.getDay() -> columna
+
+function lunesDe(fecha){
+  const d = new Date(fecha);
+  const diff = (d.getDay() + 6) % 7; // 0 = lunes
+  d.setDate(d.getDate() - diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+// La "Fecha" de una fila de Programación puede volver como texto ISO
+// (2026-09-09) o como fecha reformateada por Sheets (dd/MM/yyyy).
+function parseFechaProgramacion(txt){
+  txt = (txt || "").trim();
+  let m = txt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  return null;
+}
+
+// Todas las filas de Programación de la semana actual, marcadas para hoy
+// (columna del día de hoy = "X"). Base para buscar por conductor o por
+// placa+viaje (Garita/Producción usan esta misma fuente de verdad).
+function programacionDeHoy_(){
+  const hoy = new Date();
+  const lunesHoy = lunesDe(hoy).getTime();
+  const colHoy = DIA_COL_HOY[hoy.getDay()];
+  return (basePiuraCache.programacion || []).filter(row => {
+    const fechaFila = parseFechaProgramacion(row.Fecha);
+    if (!fechaFila || lunesDe(fechaFila).getTime() !== lunesHoy) return false;
+    return (row[colHoy] || "").toString().trim().toUpperCase() === "X";
+  });
+}
+
+// Viajes de hoy para este conductor (puede tener más de uno).
+function buscarViajesHoyPorConductor(nombreConductor){
+  const nombreNorm = normalizarNombre(nombreConductor);
+  return programacionDeHoy_().filter(row => normalizarNombre(row.Conductor) === nombreNorm);
+}
+
+// La fila exacta de Programación de hoy para esta Placa + N° de Viaje —
+// de ahí Garita/Producción sacan Proveedor/Ruta/Capacidad/Tarifa para
+// guardar el pedateo, sin tener que meter todo eso dentro del QR.
+function buscarFilaProgramacionHoy(placa, viajeNum){
+  const normPlaca = normalizarPlaca(placa);
+  const viajeTxt = (viajeNum || "1").toString().trim();
+  return programacionDeHoy_().find(row =>
+    normalizarPlaca(row.Placa) === normPlaca && (row.Viaje || "1").toString().trim() === viajeTxt
+  );
+}
+
+async function initConductor(){
+  document.getElementById("conductor-qr-wrap").classList.add("hidden");
+  document.getElementById("conductor-viajes-wrap").classList.add("hidden");
+  document.getElementById("conductor-dni-wrap").classList.remove("hidden");
+  document.getElementById("dni-input").value = "";
+  document.getElementById("dni-error").classList.add("hidden");
+  setTimeout(() => document.getElementById("dni-input").focus(), 50);
+  if (!docCacheCargado) await cargarDocumentacion(); // trae también la Programación
+}
+
+function volverDni(){
+  document.getElementById("conductor-qr-wrap").classList.add("hidden");
+  document.getElementById("conductor-viajes-wrap").classList.add("hidden");
+  document.getElementById("conductor-dni-wrap").classList.remove("hidden");
+  document.getElementById("dni-input").value = "";
+  document.getElementById("dni-error").classList.add("hidden");
+  setTimeout(() => document.getElementById("dni-input").focus(), 50);
+}
+
+async function verificarDniConductor(){
+  const dni = normalizarDNI(document.getElementById("dni-input").value);
+  const errorEl = document.getElementById("dni-error");
+  const loadingEl = document.getElementById("dni-loading");
+  errorEl.classList.add("hidden");
+  if (!dni){ errorEl.textContent = "Ingresa tu DNI."; errorEl.classList.remove("hidden"); return; }
+
+  loadingEl.classList.remove("hidden");
+  if (!docCacheCargado) await cargarDocumentacion();
+  loadingEl.classList.add("hidden");
+
+  const conductor = conductorPorDNI[dni];
+  if (!conductor){
+    errorEl.textContent = "DNI no encontrado. Verifica e intenta de nuevo.";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  const viajes = buscarViajesHoyPorConductor(conductor.Conductor);
+  if (!viajes.length){
+    errorEl.textContent = "No tienes ningún viaje programado para hoy.";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (viajes.length === 1){
+    mostrarQRViaje(viajes[0]);
+  } else {
+    mostrarListaViajes(viajes);
+  }
+}
+
+function mostrarListaViajes(viajes){
+  document.getElementById("conductor-dni-wrap").classList.add("hidden");
+  document.getElementById("conductor-viajes-wrap").classList.remove("hidden");
+  document.getElementById("conductor-viajes-wrap").dataset.actual = JSON.stringify(viajes);
+  document.getElementById("lista-viajes").innerHTML = viajes.map((v, i) => `
+    <div class="list-item" onclick="mostrarQRViajeDesdeLista(${i})">
+      <div class="li-main">
+        <div class="li-top"><span class="placa">${v.Placa}</span></div>
+        <div class="li-sub">Viaje ${v.Viaje || (i + 1)}</div>
+      </div>
+      <span class="chev">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </div>`).join("");
+}
+
+function mostrarQRViajeDesdeLista(i){
+  const viajes = JSON.parse(document.getElementById("conductor-viajes-wrap").dataset.actual);
+  mostrarQRViaje(viajes[i]);
+}
+
+function mostrarQRViaje(viaje){
+  document.getElementById("conductor-dni-wrap").classList.add("hidden");
+  document.getElementById("conductor-viajes-wrap").classList.add("hidden");
+  document.getElementById("conductor-qr-wrap").classList.remove("hidden");
+
+  const prov = (basePiuraCache.proveedores || []).find(p => p.PROVEEDOR === viaje.Proveedor);
+  const zona = (prov && prov.ZONA) || "PIURA";
+
+  document.getElementById("qr-placa").textContent = viaje.Placa;
+  document.getElementById("qr-nombre").textContent = [viaje.Conductor, viaje.Proveedor].filter(Boolean).join(" · ");
+  document.getElementById("qr-zona").textContent = zona + (viaje.Viaje ? " · VIAJE " + viaje.Viaje : "");
+
+  const qrDiv = document.getElementById("qrcode");
+  qrDiv.innerHTML = "";
+  // Payload MÍNIMO y sin tildes: placa + conductor + N° de viaje. Con eso,
+  // Garita/Producción buscan la fila completa (Proveedor/Ruta/Tarifa/
+  // Capacidad) directo en la Programación que ya tienen cargada — así no
+  // hay que meter todo dentro del QR (qrcode.js truena con textos largos
+  // o con tildes/ñ: "code length overflow") y no se duplica información.
+  new QRCode(qrDiv, {
+    text: JSON.stringify({
+      placa: viaje.Placa || "", conductor: quitarAcentos(viaje.Conductor || ""), viaje: viaje.Viaje || "1"
+    }),
+    width: 220, height: 220,
+    colorDark:"#1C1F26", colorLight:"#ffffff"
+  });
+}
+
+/* =========================================================
+   GARITA SCREEN
+   ========================================================= */
+let html5QrCode = null;
+let scannerBusy = false;
+
+function initGarita(){
+  renderGaritaLog();
+  document.getElementById("garita-result").innerHTML = "";
+  document.getElementById("garita-doc").innerHTML = "";
+  seleccionarTipo("garita", "Entrada");
+  if (!docCacheCargado) cargarDocumentacion();
+  if (html5QrCode) return;
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 230 },
+    onScanSuccess,
+    () => {}
+  ).catch(err => {
+    document.getElementById("garita-result").innerHTML =
+      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">CÁMARA</span>No se pudo abrir la cámara. Revisa permisos del navegador.</span></div>`;
+  });
+}
+
+function pararScanner(){
+  if (html5QrCode){
+    html5QrCode.stop().catch(()=>{});
+    html5QrCode.clear();
+    html5QrCode = null;
+  }
+}
+
+async function onScanSuccess(decodedText){
+  if (scannerBusy) return;
+  scannerBusy = true;
+  let data;
+  try{ data = JSON.parse(decodedText); }
+  catch(e){ data = { placa: decodedText }; }
+
+  const zona = document.getElementById("garita-zona").value;
+  const tipo = tipoSeleccionado.garita;
+  const fila = buscarFilaProgramacionHoy(data.placa, data.viaje);
+  try{
+    const registro = await marcarAcceso(data.placa, zona, data.conductor || fila && fila.Conductor || "", tipo, "Garita", {
+      viaje: data.viaje || (fila && fila.Viaje) || "1",
+      proveedor: fila ? fila.Proveedor : "", ruta: fila ? fila.Ruta : "", capacidad: fila ? fila.Capacidad : "",
+      operacion: fila ? fila.Operación : "", tarifa: fila ? fila.Tarifa : "", descuento: fila ? fila.Descuento : "",
+      tarifaTotal: fila ? fila["Tarifa Total"] : "", clasificacion: fila ? fila["Clasificación"] : ""
+    });
+    if (!registroEnDemo()) sesionLog.push(registro);
+    mostrarResultadoGarita(registro);
+    renderGaritaLog();
+  }catch(e){
+    document.getElementById("garita-result").innerHTML =
+      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">ERROR</span>No se pudo guardar el registro. Revisa conexión.</span></div>`;
+  }
+  setTimeout(() => { scannerBusy = false; }, 2200);
+}
+
+const ICON_CHECK = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+const ICON_OUT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>`;
+
+function mostrarResultadoGarita(registro){
+  const cls = registro.tipo === "Entrada" ? "" : "salida";
+  const icon = registro.tipo === "Entrada" ? ICON_CHECK : ICON_OUT;
+  document.getElementById("garita-result").innerHTML = `
+    <div class="result-banner ${cls}">
+      <span class="rb-icon">${icon}</span>
+      <span>
+        <span class="badge">${registro.tipo.toUpperCase()}${registro.viaje ? " · VIAJE " + registro.viaje : ""}</span>
+        <div class="rb-placa">${registro.placa}</div>
+        <div class="rb-hora">${registro.zona} · ${formatHora(registro.hora)}</div>
+      </span>
+    </div>`;
+  const wrap = document.getElementById("scan-wrap");
+  wrap.classList.remove("hit","salida");
+  void wrap.offsetWidth;
+  wrap.classList.add("hit");
+  if (cls) wrap.classList.add("salida");
+
+  renderDetalleDocumentacion(registro.placa, registro.conductor);
+}
+
+// Clasifica un texto de alerta/estado en ok/warn/bad para colorear el valor.
+function claseEstadoDoc(texto){
+  const t = (texto || "").toUpperCase();
+  if (!t) return "";
+  if (t.includes("VENCID") || t.includes("NO VIGENTE") || t.includes("NO CUENTA")) return "bad";
+  if (t.includes("POR VENCER") || t.includes("PROXIMO") || t.includes("PRÓXIMO")) return "warn";
+  if (t.includes("VIGENTE") || t.includes("SI") || t.includes("OK")) return "ok";
+  return "";
+}
+
+function filaDoc(label, valor, coloreado){
+  if (!valor) return "";
+  const cls = coloreado ? claseEstadoDoc(valor) : "";
+  return `<div class="doc-row"><span class="dl">${label}</span><span class="dv ${cls}">${valor}</span></div>`;
+}
+
+function renderDetalleDocumentacion(placa, conductorNombre){
+  const cont = document.getElementById("garita-doc");
+  const normPlaca = normalizarPlaca(placa);
+  const docU = docUnidadesPorPlaca[normPlaca];
+  const docC = docConductoresPorNombre[normalizarNombre(conductorNombre)];
+
+  if (!docCacheCargado){
+    cont.innerHTML = `<div class="doc-panel"><div class="doc-empty">Cargando datos de documentación…</div></div>`;
+    return;
+  }
+  if (!docU && !docC){
+    cont.innerHTML = `<div class="doc-panel"><div class="doc-empty">Sin datos de documentación para esta placa.</div></div>`;
+    return;
+  }
+
+  let html = '<div class="doc-panel">';
+  if (docU){
+    html += '<div class="doc-sec-title">DOCUMENTACIÓN DE LA UNIDAD</div>';
+    html += filaDoc("SOAT vence", docU["Fecha Vencimiento SOAT"]) ;
+    html += filaDoc("Alerta SOAT", docU["Alerta SOAT"], true);
+    html += filaDoc("RTV vence", docU["Fecha Vencimiento RTV"]);
+    html += filaDoc("Alerta RTV", docU["Alerta RTV"], true);
+    if ((docU["¿Tiene T.C.?"] || "").toUpperCase().startsWith("SI")){
+      html += filaDoc("T.C. vence", docU["Fecha Vencimiento T.C."]);
+      html += filaDoc("Estado T.C.", docU["Estado T.C."], true);
+    }
+    if ((docU["Cuenta con Poliza RC"] || "").toUpperCase().startsWith("SI")){
+      html += filaDoc("Póliza RC vence", docU["Fecha Vencimiento Poliza"]);
+    }
+    html += filaDoc("% Cumplimiento", docU["% CUMPLI"]);
+    html += filaDoc("Documentos faltantes", docU["DOC.FALTA"], true);
+  }
+  if (docC){
+    html += '<div class="doc-sec-title">DOCUMENTACIÓN DEL CONDUCTOR' + (conductorNombre ? " — " + conductorNombre.toUpperCase() : "") + '</div>';
+    html += filaDoc("Licencia revalida", docC["Fecha de Revalidación"]);
+    html += filaDoc("Estado licencia", docC["Estado Licencia"], true);
+    html += filaDoc("SCTR", docC["Tipo de SCTR"]);
+    html += filaDoc("SCTR vence", docC["Fecha Vencimiento SCTR"]);
+    html += filaDoc("Estado SCTR", docC["Estado SCTR"], true);
+  }
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+let sesionLog = [];
+
+function renderGaritaLog(){
+  const cont = document.getElementById("garita-log");
+  const todos = registroEnDemo() ? getRegistrosDemo() : sesionLog;
+  const regs = todos.filter(r => !r.origen || r.origen === "Garita").slice(-8).reverse();
+  if (!regs.length){
+    cont.innerHTML = '<div class="empty">Aún no hay registros.</div>';
+    return;
+  }
+  cont.innerHTML = regs.map(r => `
+    <div class="log-item">
+      <span class="lp">${r.placa}${r.viaje ? " · V" + r.viaje : ""}</span>
+      <span class="lt ${r.tipo.toLowerCase()}">${r.tipo}</span>
+      <span>${formatHora(r.hora)}</span>
+    </div>
+  `).join("");
+}
+
+/* =========================================================
+   PRODUCCIÓN SCREEN
+   ========================================================= */
+let html5QrCodeProduccion = null;
+let scannerBusyProduccion = false;
+let sesionLogProduccion = [];
+let pendingProduccionScan = null;
+
+function initProduccion(){
+  renderProduccionLog();
+  document.getElementById("produccion-result").innerHTML = "";
+  document.getElementById("produccion-bloqueo").innerHTML = "";
+  document.getElementById("produccion-carga-form").classList.add("hidden");
+  pendingProduccionScan = null;
+  seleccionarTipo("produccion", "Entrada");
+  if (!docCacheCargado) cargarDocumentacion();
+  if (html5QrCodeProduccion) return;
+  html5QrCodeProduccion = new Html5Qrcode("reader-produccion");
+  html5QrCodeProduccion.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 230 },
+    onScanSuccessProduccion,
+    () => {}
+  ).catch(err => {
+    document.getElementById("produccion-result").innerHTML =
+      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">CÁMARA</span>No se pudo abrir la cámara. Revisa permisos del navegador.</span></div>`;
+  });
+}
+
+function pararScannerProduccion(){
+  if (html5QrCodeProduccion){
+    html5QrCodeProduccion.stop().catch(()=>{});
+    html5QrCodeProduccion.clear();
+    html5QrCodeProduccion = null;
+  }
+}
+
+async function onScanSuccessProduccion(decodedText){
+  if (scannerBusyProduccion) return;
+  scannerBusyProduccion = true;
+  const horaCarga = new Date().toISOString(); // se toma apenas se detecta el QR, no al confirmar
+  document.getElementById("produccion-bloqueo").innerHTML = "";
+  document.getElementById("produccion-result").innerHTML = "";
+
+  let data;
+  try{ data = JSON.parse(decodedText); }
+  catch(e){ data = { placa: decodedText }; }
+
+  const viaje = data.viaje || "1";
+  // Requisito obligatorio: la unidad ya debe haber sido pedateada (Entrada) en Garita hoy, para ESTE viaje.
+  const chequeoGarita = await verificarPedateoGarita(data.placa, viaje);
+  if (!chequeoGarita.existe){
+    document.getElementById("produccion-bloqueo").innerHTML =
+      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">BLOQUEADO</span>La placa ${data.placa} (viaje ${viaje}) aún no ha sido pedateada en Garita hoy. Debe pasar por Garita primero.</span></div>`;
+    setTimeout(() => { scannerBusyProduccion = false; }, 2200);
+    return;
+  }
+
+  // La Capacidad/Ruta que se muestran, y la Tarifa que se guarda (sin
+  // mostrarla en pantalla), son las que Logística puso en la Programación
+  // de este viaje — no las de Unidades.
+  const fila = buscarFilaProgramacionHoy(data.placa, viaje) || {};
+  // Válido: se pide peso y jabas antes de confirmar el pedateo de Producción,
+  // pero la hora que se guarda es la del escaneo, no la del formulario.
+  pendingProduccionScan = {
+    ...data, viaje, horaCarga,
+    conductor: data.conductor || fila.Conductor || "",
+    proveedor: fila.Proveedor || "", ruta: fila.Ruta || "", capacidad: fila.Capacidad || "",
+    operacion: fila.Operación || "", tarifa: fila.Tarifa || "", descuento: fila.Descuento || "",
+    tarifaTotal: fila["Tarifa Total"] || "", clasificacion: fila["Clasificación"] || "",
+    zona: (function(){ const prov=(basePiuraCache.proveedores||[]).find(p=>p.PROVEEDOR===fila.Proveedor); return prov?prov.ZONA:""; })()
+  };
+  document.getElementById("produccion-carga-placa").textContent = `Placa ${data.placa}${pendingProduccionScan.conductor ? " — " + pendingProduccionScan.conductor : ""} — Viaje ${viaje}`;
+  document.getElementById("prod-peso").value = "";
+  document.getElementById("prod-jabas").value = "";
+  document.getElementById("produccion-carga-form").classList.remove("hidden");
+  setTimeout(() => document.getElementById("prod-peso").focus(), 50);
+  // scannerBusyProduccion se mantiene true hasta confirmar/cancelar, para no volver a escanear mientras se llena el formulario.
+}
+
+function cancelarPedateoProduccion(){
+  pendingProduccionScan = null;
+  document.getElementById("produccion-carga-form").classList.add("hidden");
+  scannerBusyProduccion = false;
+}
+
+async function confirmarPedateoProduccion(){
+  if (!pendingProduccionScan) return;
+  const data = pendingProduccionScan;
+  const peso = document.getElementById("prod-peso").value.trim();
+  const jabas = document.getElementById("prod-jabas").value.trim();
+  const zona = data.zona || "";
+  const tipo = tipoSeleccionado.produccion;
+
+  try{
+    const registro = await marcarAcceso(data.placa, zona, data.conductor || "", tipo, "Producción", {
+      peso, jabas, horaCarga: data.horaCarga, viaje: data.viaje,
+      proveedor: data.proveedor, ruta: data.ruta, capacidad: data.capacidad,
+      operacion: data.operacion, tarifa: data.tarifa, descuento: data.descuento,
+      tarifaTotal: data.tarifaTotal, clasificacion: data.clasificacion
+    });
+    if (!registroEnDemo()) sesionLogProduccion.push(registro);
+    mostrarResultadoProduccion(registro, data);
+    renderProduccionLog();
+  }catch(e){
+    document.getElementById("produccion-result").innerHTML =
+      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">ERROR</span>No se pudo guardar el registro. Revisa conexión.</span></div>`;
+  }
+  pendingProduccionScan = null;
+  document.getElementById("produccion-carga-form").classList.add("hidden");
+  setTimeout(() => { scannerBusyProduccion = false; }, 2200);
+}
+
+function mostrarResultadoProduccion(registro, qrData){
+  const cls = registro.tipo === "Entrada" ? "" : "salida";
+  const icon = registro.tipo === "Entrada" ? ICON_CHECK : ICON_OUT;
+  const conductor = registro.conductor || qrData.conductor || "";
+  // Ruta/Capacidad salen de la Programación (lo que puso Logística para
+  // este viaje), no de la ficha de la Unidad. La Tarifa no se muestra acá
+  // a propósito — Producción no debe ver precios — pero sí se guarda en
+  // el Sheet (va en el POST de marcarAcceso más abajo).
+  const proveedor = qrData.proveedor || "";
+  const ruta = qrData.ruta || "";
+  const capacidad = qrData.capacidad || "";
+
+  document.getElementById("produccion-result").innerHTML = `
+    <div class="result-banner ${cls}">
+      <span class="rb-icon">${icon}</span>
+      <span>
+        <span class="badge">${registro.tipo.toUpperCase()}${registro.viaje ? " · VIAJE " + registro.viaje : ""}</span>
+        <div class="rb-placa">${registro.placa}</div>
+        <div class="rb-hora">${formatHora(registro.hora)}</div>
+      </span>
+    </div>
+    <div class="doc-panel" style="margin-top:10px;">
+      ${filaDoc("Conductor", conductor)}
+      ${filaDoc("Proveedor", proveedor)}
+      ${filaDoc("Ruta", ruta)}
+      ${filaDoc("Capacidad", capacidad)}
+      ${filaDoc("Hora de carga", formatHora(registro.hora))}
+      ${filaDoc("Peso", registro.peso)}
+      ${filaDoc("Cantidad de jabas", registro.jabas)}
+    </div>`;
+
+  const wrap = document.getElementById("scan-wrap-produccion");
+  wrap.classList.remove("hit","salida");
+  void wrap.offsetWidth;
+  wrap.classList.add("hit");
+  if (cls) wrap.classList.add("salida");
+}
+
+function renderProduccionLog(){
+  const cont = document.getElementById("produccion-log");
+  const todos = registroEnDemo() ? getRegistrosDemo() : sesionLogProduccion;
+  const regs = todos.filter(r => r.origen === "Producción").slice(-8).reverse();
+  if (!regs.length){
+    cont.innerHTML = '<div class="empty">Aún no hay registros.</div>';
+    return;
+  }
+  cont.innerHTML = regs.map(r => `
+    <div class="log-item">
+      <span class="lp">${r.placa}${r.viaje ? " · V" + r.viaje : ""}</span>
+      <span class="lt ${r.tipo.toLowerCase()}">${r.tipo}</span>
+      <span>${formatHora(r.hora)}</span>
+    </div>
+  `).join("");
+}
+
+/* =========================================================
+   LOGÍSTICA: PROGRAMACIÓN SEMANAL
+   ========================================================= */
+const DIAS_PROG = [
+  { key:"L", label:"Lunes" }, { key:"M1", label:"Martes" }, { key:"M2", label:"Miércoles" },
+  { key:"J", label:"Jueves" }, { key:"V", label:"Viernes" }, { key:"S", label:"Sábado" }, { key:"D", label:"Domingo" }
+];
+let filasProgramacion = [];
+
+async function initLogistica(){
+  filasProgramacion = [];
+  document.getElementById("prog-guardar-msg").textContent = "";
+  if (!document.getElementById("prog-fecha").value){
+    document.getElementById("prog-fecha").value = new Date().toISOString().slice(0,10);
+  }
+  await cargarBasePiura();
+  poblarSelectsLogistica();
+  limpiarFormularioProgramacion();
+  renderTablaProgramacion();
+}
+
+function poblarSelectsLogistica(){
+  const selProv = document.getElementById("prog-proveedor");
+  const selRuta = document.getElementById("prog-ruta");
+  selProv.innerHTML = '<option value="">— Selecciona —</option>' +
+    basePiuraCache.proveedores.map(p => `<option value="${p.PROVEEDOR}">${p.PROVEEDOR}</option>`).join("");
+  selRuta.innerHTML = '<option value="">— Selecciona —</option>' +
+    basePiuraCache.rutas.map(r => `<option value="${r.RUTA}">${r.RUTA}</option>`).join("");
+  onCambioProveedorLogistica();
+}
+
+// Al elegir un proveedor, se filtran sus conductores y placas (Conductores/
+// Unidades no están linkeados 1 a 1: Logística arma la pareja al programar).
+function onCambioProveedorLogistica(){
+  const proveedor = document.getElementById("prog-proveedor").value;
+  const selCond = document.getElementById("prog-conductor");
+  const selPlaca = document.getElementById("prog-placa");
+
+  const conductores = proveedor
+    ? basePiuraCache.conductores.filter(c => c.PROVEEDOR === proveedor)
+    : basePiuraCache.conductores;
+  const unidades = proveedor
+    ? basePiuraCache.unidades.filter(u => u.Proveedor === proveedor)
+    : basePiuraCache.unidades;
+
+  selCond.innerHTML = '<option value="">— Selecciona —</option>' +
+    conductores.map(c => `<option value="${c.Conductor}">${c.Conductor}</option>`).join("");
+  selPlaca.innerHTML = '<option value="">— Selecciona —</option>' +
+    unidades.map(u => `<option value="${u.Placa}">${u.Placa}</option>`).join("");
+}
+
+// La Capacidad es el tamaño (10/12/14 PH) — el mismo que se usa para cruzar
+// la tarifa en la hoja "Rutas Establecidas". Se puede sobreescribir a mano.
+// De paso, sugiere la Cantidad de Viajes según las vueltas típicas de esa
+// ruta (columna "CANTIDAD DE VUELTAS") — también editable.
+function recalcularTarifaLogistica(){
+  const rutaNombre = document.getElementById("prog-ruta").value;
+  const ph = document.getElementById("prog-ph").value;
+  const ruta = basePiuraCache.rutas.find(r => r.RUTA === rutaNombre);
+  document.getElementById("prog-tarifa").value = (ruta && ruta[ph]) ? ruta[ph] : "";
+  if (ruta && ruta["CANTIDAD DE VUELTAS"]){
+    document.getElementById("prog-cant-viajes").value = ruta["CANTIDAD DE VUELTAS"];
+  }
+  recalcularTarifaTotal();
+}
+
+// Tarifa Total = Tarifa - Descuento (por si hay un arreglo especial con el
+// proveedor). Este es el monto que se guarda como definitivo.
+function recalcularTarifaTotal(){
+  const tarifa = parseFloat(document.getElementById("prog-tarifa").value) || 0;
+  const descuento = parseFloat(document.getElementById("prog-descuento").value) || 0;
+  document.getElementById("prog-tarifa-total").value = (tarifa - descuento).toString();
+}
+
+function toggleDiaForm(btn){ btn.classList.toggle("on"); }
+
+function limpiarFormularioProgramacion(){
+  document.getElementById("prog-proveedor").value = "";
+  onCambioProveedorLogistica();
+  ["prog-cant-viajes","prog-ruta","prog-tarifa","prog-descuento","prog-tarifa-total","prog-clasificacion"]
+    .forEach(id => document.getElementById(id).value = "");
+  document.getElementById("prog-ph").value = "10 PH";
+  document.getElementById("prog-operacion").value = "TRASLADO DE MP";
+  document.getElementById("prog-cant-viajes").value = "1";
+  document.getElementById("prog-descuento").value = "0";
+  document.querySelectorAll("#prog-days .prog-day").forEach(b => b.classList.remove("on"));
+}
+
+// "Cantidad de Viajes" ya no es un número de viaje suelto — es cuántas
+// vueltas hace ESTA placa con estos mismos datos (proveedor/ruta/tarifa),
+// así que se agregan todas de una sola vez, numeradas seguido a partir del
+// próximo viaje libre de esa placa (por si ya le habías agregado otros).
+function agregarFilaProgramacion(){
+  const proveedor = document.getElementById("prog-proveedor").value;
+  const conductor = document.getElementById("prog-conductor").value;
+  const placa = document.getElementById("prog-placa").value;
+  const dias = {};
+  document.querySelectorAll("#prog-days .prog-day").forEach(b => { dias[b.dataset.dia] = b.classList.contains("on"); });
+  const hayDia = Object.values(dias).some(Boolean);
+  const cantidad = parseInt(document.getElementById("prog-cant-viajes").value, 10) || 1;
+
+  if (!placa){ alert("Selecciona una placa."); return; }
+  if (!hayDia){ alert("Marca al menos un día de la semana."); return; }
+
+  const viajesPrevios = filasProgramacion.filter(f => f.placa === placa).length;
+  const base = {
+    proveedor, conductor, placa,
+    capacidad: document.getElementById("prog-ph").value,
+    ruta: document.getElementById("prog-ruta").value,
+    operacion: document.getElementById("prog-operacion").value.trim(),
+    tarifa: document.getElementById("prog-tarifa").value.trim(),
+    descuento: document.getElementById("prog-descuento").value.trim() || "0",
+    tarifaTotal: document.getElementById("prog-tarifa-total").value.trim(),
+    clasificacion: document.getElementById("prog-clasificacion").value.trim(),
+    dias
+  };
+
+  for (let i = 1; i <= cantidad; i++){
+    const numeroViaje = (editandoViajeProgramacion !== null && cantidad === 1)
+      ? editandoViajeProgramacion
+      : String(viajesPrevios + i);
+    filasProgramacion.push({ ...base, viaje: numeroViaje });
+  }
+  editandoViajeProgramacion = null;
+
+  limpiarFormularioProgramacion();
+  renderTablaProgramacion();
+}
+
+function quitarFilaProgramacion(idx){
+  filasProgramacion.splice(idx, 1);
+  renderTablaProgramacion();
+}
+
+// Trae de vuelta al formulario los datos de una fila ya agregada (todavía
+// sin guardar) para corregirla. La saca de la tabla mientras se edita —
+// al volver a darle "+ Agregar" queda como la versión corregida, con el
+// MISMO número de viaje que tenía (no se renumera), mientras "Cantidad de
+// Viajes" se quede en 1. Si la cambias a más de 1, ahí sí se agregan como
+// viajes nuevos, numerados seguido.
+let editandoViajeProgramacion = null;
+function editarFilaProgramacion(idx){
+  const f = filasProgramacion[idx];
+  document.getElementById("prog-proveedor").value = f.proveedor;
+  onCambioProveedorLogistica();
+  document.getElementById("prog-conductor").value = f.conductor;
+  document.getElementById("prog-placa").value = f.placa;
+  document.getElementById("prog-cant-viajes").value = "1";
+  document.getElementById("prog-ph").value = f.capacidad;
+  document.getElementById("prog-ruta").value = f.ruta;
+  document.getElementById("prog-operacion").value = f.operacion;
+  document.getElementById("prog-tarifa").value = f.tarifa;
+  document.getElementById("prog-descuento").value = f.descuento;
+  document.getElementById("prog-tarifa-total").value = f.tarifaTotal;
+  document.getElementById("prog-clasificacion").value = f.clasificacion;
+  document.querySelectorAll("#prog-days .prog-day").forEach(b => b.classList.toggle("on", !!f.dias[b.dataset.dia]));
+  editandoViajeProgramacion = f.viaje;
+  filasProgramacion.splice(idx, 1);
+  renderTablaProgramacion();
+  document.getElementById("prog-proveedor").scrollIntoView({ behavior:"smooth", block:"start" });
+}
+
+function renderTablaProgramacion(){
+  const fecha = document.getElementById("prog-fecha").value;
+  if (fecha){
+    const d = new Date(fecha + "T00:00:00");
+    document.getElementById("prog-week-label").textContent =
+      "Semana de: " + d.toLocaleDateString("es-PE", { weekday:"long", day:"2-digit", month:"long" });
+  }
+
+  const table = document.getElementById("prog-table");
+  const headDias = DIAS_PROG.map(d => `<th title="${d.label}">${d.label[0]}</th>`).join("");
+  const cabecera = `<tr><th>Proveedor</th><th>Conductor</th><th>Placa</th><th>Viaje</th><th>Cap.</th><th>Ruta</th><th>Operación</th><th>Tarifa</th><th>Desc.</th><th>Tarifa Total</th><th>Clasif.</th>${headDias}<th></th></tr>`;
+  if (!filasProgramacion.length){
+    table.innerHTML = cabecera +
+      `<tr><td colspan="${12 + DIAS_PROG.length}" style="text-align:center; color:var(--ink-dim);">Aún no agregas unidades a la programación.</td></tr>`;
+    return;
+  }
+  const filas = filasProgramacion.map((f, i) => `
+    <tr>
+      <td>${f.proveedor}</td><td>${f.conductor}</td><td>${f.placa}</td><td>${f.viaje}</td><td>${f.capacidad}</td>
+      <td>${f.ruta}</td><td>${f.operacion}</td><td>${f.tarifa}</td><td>${f.descuento}</td><td>${f.tarifaTotal}</td><td>${f.clasificacion}</td>
+      ${DIAS_PROG.map(d => `<td class="${f.dias[d.key] ? "day-on" : "day-off"}"></td>`).join("")}
+      <td style="white-space:nowrap;">
+        <button class="rm-btn" style="color:var(--purple);" onclick="editarFilaProgramacion(${i})" title="Editar">✎</button>
+        <button class="rm-btn" onclick="quitarFilaProgramacion(${i})" title="Quitar">✕</button>
+      </td>
+    </tr>`).join("");
+  table.innerHTML = cabecera + filas;
+}
+
+function getProgramacionDemo(){
+  const raw = localStorage.getItem(LS_KEYS.programacion);
+  return raw ? JSON.parse(raw) : [];
+}
+function saveProgramacionDemo(list){
+  localStorage.setItem(LS_KEYS.programacion, JSON.stringify(list));
+}
+
+async function guardarProgramacion(){
+  const msg = document.getElementById("prog-guardar-msg");
+  if (!filasProgramacion.length){ msg.textContent = "Agrega al menos una fila antes de guardar."; return; }
+  const fecha = document.getElementById("prog-fecha").value;
+  msg.textContent = "Guardando…";
+
+  const lote = { fecha, guardadoEl: new Date().toISOString(), filas: filasProgramacion };
+
+  try{
+    if (programacionEnDemo()){
+      const historial = getProgramacionDemo();
+      historial.push(lote);
+      saveProgramacionDemo(historial);
+    } else {
+      const res = await fetch(getPiuraUrl(), {
+        method: "POST",
+        body: JSON.stringify({ action: "guardarProgramacion", fecha, filas: filasProgramacion })
+      });
+      // Antes esta respuesta no se revisaba: si el Apps Script devolvía un
+      // error (URL vieja, versión sin desplegar, etc.) igual decía "guardado"
+      // aunque no se hubiera escrito nada en el Sheet.
+      let data = {};
+      try{ data = await res.json(); }catch(e){}
+      if (!res.ok || data.ok === false){
+        throw new Error(data.error || ("El servidor respondió " + res.status));
+      }
+    }
+    msg.textContent = "Programación guardada ✔";
+    filasProgramacion = [];
+    renderTablaProgramacion();
+  }catch(e){
+    msg.textContent = "No se pudo guardar: " + e.message;
+  }
+}
+
+/* =========================================================
+   LOGÍSTICA: REGISTRAR (alta de Conductor / Unidad)
+   Solo los campos esenciales — el resto de columnas de las hojas
+   CONDUCTORES/UNIDADES quedan en blanco para completarlas después
+   directo en el Sheet. Las fechas de vencimiento calculan solas su
+   "Alerta" (VIGENTE / POR VENCER / VENCIDO), con 15 días de margen.
+   ========================================================= */
+const DIAS_ALERTA_LIMITE = 15;
+
+function calcularAlertaCliente(fechaTxt){
+  if (!fechaTxt) return null;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const venc = new Date(fechaTxt + "T00:00:00");
+  if (isNaN(venc.getTime())) return null;
+  const dias = Math.round((venc - hoy) / 86400000);
+  let alerta = dias < 0 ? "VENCIDO" : (dias <= DIAS_ALERTA_LIMITE ? "POR VENCER" : "VIGENTE");
+  return { dias, alerta };
+}
+
+function previsualizarAlerta(inputId, outputId){
+  const r = calcularAlertaCliente(document.getElementById(inputId).value);
+  document.getElementById(outputId).value = r ? `${r.alerta} (${r.dias} días)` : "";
+}
+
+let tipoRegistroActual = "proveedor";
+// Proveedor "activo" en esta visita a Registrar: mientras no haya uno
+// (recién guardado o encontrado con el buscador), Conductor y Unidad
+// quedan bloqueados — no se puede dar de alta ninguno de los dos sin
+// que exista primero su Proveedor.
+let proveedorActivo = null;
+
+function actualizarBloqueoTabsRegistro(){
+  // Conductor y Unidad ni siquiera aparecen como opción hasta que hay un
+  // Proveedor activo — no es solo "deshabilitado", es invisible.
+  const listo = !!proveedorActivo;
+  document.getElementById("registrar-tipo-conductor").classList.toggle("hidden", !listo);
+  document.getElementById("registrar-tipo-unidad").classList.toggle("hidden", !listo);
+}
+
+let unidadesPendientesRegistro = [];
+let conductoresPendientesRegistro = [];
+
+// Alterna, dentro de Conductor/Unidad, entre "modo alta" (botón + Agregar a
+// la lista, para cargar varios antes de guardar) y "modo edición" (un único
+// botón Guardar cambios, para cuando se abrió un registro desde el buscador).
+function actualizarModoBotonesRegistro(){
+  const editandoUnidad = !!(editandoRegistro && editandoRegistro.tipo === "unidad");
+  document.getElementById("reg-u-btn-agregar").classList.toggle("hidden", editandoUnidad);
+  document.getElementById("reg-u-btn-guardar").classList.toggle("hidden", !editandoUnidad);
+  document.getElementById("reg-u-lista-wrap").classList.toggle("hidden", editandoUnidad || !unidadesPendientesRegistro.length);
+
+  const editandoConductor = !!(editandoRegistro && editandoRegistro.tipo === "conductor");
+  document.getElementById("reg-c-btn-agregar").classList.toggle("hidden", editandoConductor);
+  document.getElementById("reg-c-btn-guardar").classList.toggle("hidden", !editandoConductor);
+  document.getElementById("reg-c-lista-wrap").classList.toggle("hidden", editandoConductor || !conductoresPendientesRegistro.length);
+  document.getElementById("reg-c-baja-wrap").classList.toggle("hidden", !editandoConductor);
+
+  // Proveedor encontrado con el buscador (ya existía) -> mostrar el atajo
+  // para agregarle Unidades/Conductores sin tener que adivinar que las
+  // pestañas ya se desbloquearon.
+  const editandoProveedor = !!(editandoRegistro && editandoRegistro.tipo === "proveedor");
+  document.getElementById("reg-p-atajos").classList.toggle("hidden", !editandoProveedor);
+}
+
+// Desde un Proveedor ya existente (abierto con el buscador), atajo directo
+// para agregarle una Unidad o un Conductor nuevos — sin pasar por "editar".
+function irAAgregarDesdeProveedor(tipo){
+  const nombre = document.getElementById("reg-p-nombre").value.trim();
+  const ruc = document.getElementById("reg-p-ruc").value.trim();
+  const zona = document.getElementById("reg-p-zona").value;
+  const sede = document.getElementById("reg-p-sede").value.trim();
+  proveedorActivo = nombre;
+  editandoRegistro = null;
+  document.getElementById("registrar-editando-banner").classList.add("hidden");
+  actualizarBloqueoTabsRegistro();
+  seleccionarTipoRegistro(tipo, true);
+  actualizarModoBotonesRegistro();
+  const prefijo = tipo === "unidad" ? "reg-u-" : "reg-c-";
+  document.getElementById(prefijo + "proveedor").value = nombre;
+  document.getElementById(prefijo + "ruc").value = ruc;
+  document.getElementById(prefijo + "zona").value = zona;
+  document.getElementById(prefijo + "sede").value = sede;
+}
+
+// `forzado=true` se usa solo para navegación interna (encadenado tras
+// guardar, o al abrir un registro desde el buscador) — el clic manual del
+// usuario en las pestañas nunca pasa `forzado`, así que sí respeta el bloqueo.
+function seleccionarTipoRegistro(tipo, forzado){
+  if (!forzado && tipo !== "proveedor" && !proveedorActivo){
+    document.getElementById("registrar-msg").textContent = "Primero registra o busca un proveedor.";
+    return;
+  }
+  tipoRegistroActual = tipo;
+  document.getElementById("registrar-tipo-proveedor").classList.toggle("active", tipo === "proveedor");
+  document.getElementById("registrar-tipo-conductor").classList.toggle("active", tipo === "conductor");
+  document.getElementById("registrar-tipo-unidad").classList.toggle("active", tipo === "unidad");
+  document.getElementById("registrar-form-proveedor").classList.toggle("hidden", tipo !== "proveedor");
+  document.getElementById("registrar-form-conductor").classList.toggle("hidden", tipo !== "conductor");
+  document.getElementById("registrar-form-unidad").classList.toggle("hidden", tipo !== "unidad");
+  document.getElementById("registrar-msg").textContent = "";
+}
+
+let tieneTCActual = false;
+function seleccionarTieneTC(tiene){
+  tieneTCActual = tiene;
+  document.getElementById("reg-u-tc-si").classList.toggle("active", tiene);
+  document.getElementById("reg-u-tc-no").classList.toggle("active", !tiene);
+  document.getElementById("reg-u-tc-wrap").classList.toggle("hidden", !tiene);
+}
+
+// El Proveedor de Conductor/Unidad ya NO es un desplegable — viene fijo del
+// proveedor activo (recién creado o encontrado con el buscador). Así no se
+// puede elegir "cualquier otro" proveedor sin pasar antes por su pestaña.
+function poblarSelectsProveedorRegistrar(){
+  document.getElementById("reg-c-proveedor").value = proveedorActivo || "";
+  document.getElementById("reg-u-proveedor").value = proveedorActivo || "";
+}
+
+// Después de guardar/editar/dar de baja contra el Sheet real, se vuelve a
+// traer toda la Base Piura — así la búsqueda y los selectores de Proveedor
+// quedan al día sin tener que salir de la pantalla.
+async function refrescarBasePiuraTrasGuardar(){
+  basePiuraCache = null; docCacheCargado = false;
+  await cargarBasePiura();
+  poblarSelectsProveedorRegistrar();
+}
+
+async function initRegistrar(){
+  document.getElementById("registrar-buscar").value = "";
+  document.getElementById("registrar-buscar-resultados").innerHTML = "";
+  proveedorActivo = null;
+  unidadesPendientesRegistro = [];
+  conductoresPendientesRegistro = [];
+  cancelarEdicionRegistro();
+  seleccionarTipoRegistro("proveedor");
+  actualizarBloqueoTabsRegistro();
+  renderListaUnidadesRegistro();
+  renderListaConductoresRegistro();
+  await cargarBasePiura();
+  poblarSelectsProveedorRegistrar();
+}
+
+/* ---- Buscar proveedor / conductor / unidad ya existente ---- */
+let registrarResultadosActuales = [];
+function buscarEnRegistrar(){
+  const q = document.getElementById("registrar-buscar").value.trim().toUpperCase();
+  const cont = document.getElementById("registrar-buscar-resultados");
+  if (!q){ cont.innerHTML = ""; registrarResultadosActuales = []; return; }
+
+  const resultados = [];
+  (basePiuraCache.proveedores || []).forEach(p => {
+    if ((p.PROVEEDOR || "").toUpperCase().includes(q) || (p.RUC || "").includes(q))
+      resultados.push({ tipo:"proveedor", etiqueta:p.PROVEEDOR, sub: p.RUC || "", row:p });
+  });
+  (basePiuraCache.conductores || []).forEach(c => {
+    if ((c.Conductor || "").toUpperCase().includes(q) || (c.DNI || "").includes(q))
+      resultados.push({ tipo:"conductor", etiqueta:c.Conductor, sub: "DNI " + c.DNI + (c.Estado === "INACTIVO" ? " · INACTIVO" : ""), row:c });
+  });
+  (basePiuraCache.unidades || []).forEach(u => {
+    if (normalizarPlaca(u.Placa).includes(normalizarPlaca(q)))
+      resultados.push({ tipo:"unidad", etiqueta:u.Placa, sub: u.Proveedor || "", row:u });
+  });
+
+  registrarResultadosActuales = resultados.slice(0, 10);
+  if (!registrarResultadosActuales.length){ cont.innerHTML = '<div class="empty">Sin resultados.</div>'; return; }
+  cont.innerHTML = registrarResultadosActuales.map((r, i) => `
+    <div class="list-item" onclick="elegirResultadoRegistrar(${i})">
+      <div class="li-main">
+        <div class="li-top"><span class="tag">${r.tipo.toUpperCase()}</span><span class="placa">${r.etiqueta || "(sin nombre)"}</span></div>
+        <div class="li-sub">${r.sub}</div>
+      </div>
+      <span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </div>`).join("");
+}
+
+function elegirResultadoRegistrar(i){
+  const r = registrarResultadosActuales[i];
+  if (!r) return;
+  document.getElementById("registrar-buscar").value = "";
+  document.getElementById("registrar-buscar-resultados").innerHTML = "";
+  cargarParaEditar(r.tipo, r.row);
+}
+
+function ddmmyyyyAFechaInput(txt){
+  const m = (txt || "").match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+}
+
+let editandoRegistro = null; // {tipo, clave} — clave = PROVEEDOR / DNI / Placa original
+function mostrarBannerEdicion(texto){
+  document.getElementById("registrar-editando-banner").classList.remove("hidden");
+  document.getElementById("registrar-editando-texto").textContent = texto;
+}
+
+function cargarParaEditar(tipo, row){
+  seleccionarTipoRegistro(tipo, true);
+  if (tipo === "proveedor"){
+    editandoRegistro = { tipo, clave: row.PROVEEDOR };
+    proveedorActivo = row.PROVEEDOR; // encontrado por el buscador: desbloquea Conductor/Unidad para agregarle más
+    document.getElementById("reg-p-ruc").value = row.RUC || "";
+    document.getElementById("reg-p-nombre").value = row.PROVEEDOR || "";
+    document.getElementById("reg-p-zona").value = row.ZONA || "Piura";
+    document.getElementById("reg-p-sede").value = row.SEDE || "";
+    document.getElementById("reg-p-btn-guardar").textContent = "Guardar cambios";
+    mostrarBannerEdicion("Proveedor: " + row.PROVEEDOR);
+  } else if (tipo === "conductor"){
+    editandoRegistro = { tipo, clave: row.DNI };
+    proveedorActivo = row.PROVEEDOR || proveedorActivo;
+    document.getElementById("reg-c-dni").value = row.DNI || "";
+    document.getElementById("reg-c-nombre").value = row.Conductor || "";
+    document.getElementById("reg-c-ruc").value = row.RUC || "";
+    document.getElementById("reg-c-proveedor").value = row.PROVEEDOR || "";
+    document.getElementById("reg-c-zona").value = row.ZONA || "Piura";
+    document.getElementById("reg-c-sede").value = row.SEDE || "";
+    document.getElementById("reg-c-licencia").value = row["N° Licencia de Conducir"] || "";
+    document.getElementById("reg-c-categoria").value = row["Categoría Licencia"] || "";
+    document.getElementById("reg-c-fecha-lic").value = ddmmyyyyAFechaInput(row["Fecha de Revalidación"]);
+    previsualizarAlerta("reg-c-fecha-lic", "reg-c-alerta-lic");
+    document.getElementById("reg-c-tiposctr").value = row["Tipo de SCTR"] || "";
+    document.getElementById("reg-c-aseguradora-sctr").value = row["Aseguradora SCTR"] || "";
+    document.getElementById("reg-c-fecha-sctr").value = ddmmyyyyAFechaInput(row["Fecha Vencimiento SCTR"]);
+    previsualizarAlerta("reg-c-fecha-sctr", "reg-c-alerta-sctr");
+    document.getElementById("reg-c-btn-guardar").textContent = "Guardar cambios";
+    document.getElementById("reg-c-baja-wrap").classList.remove("hidden");
+    document.getElementById("reg-c-reemplazo").value = "";
+    mostrarBannerEdicion("Conductor: " + row.Conductor + (row.Estado === "INACTIVO" ? " (INACTIVO)" : ""));
+  } else if (tipo === "unidad"){
+    editandoRegistro = { tipo, clave: row.Placa };
+    proveedorActivo = row.Proveedor || proveedorActivo;
+    document.getElementById("reg-u-placa").value = row.Placa || "";
+    document.getElementById("reg-u-tipo").value = row["Tipo de Unidad"] || "";
+    document.getElementById("reg-u-ruc").value = row.RUC || "";
+    document.getElementById("reg-u-proveedor").value = row.Proveedor || "";
+    document.getElementById("reg-u-zona").value = row.ZONA || "Piura";
+    document.getElementById("reg-u-sede").value = row.SEDE || "";
+    document.getElementById("reg-u-pasajeros").value = row["N° Pasajeros"] || "";
+    document.getElementById("reg-u-anio").value = row["Año Fab."] || "";
+    document.getElementById("reg-u-fecha-soat").value = ddmmyyyyAFechaInput(row["Fecha Vencimiento SOAT"]);
+    previsualizarAlerta("reg-u-fecha-soat", "reg-u-alerta-soat");
+    document.getElementById("reg-u-fecha-rtv").value = ddmmyyyyAFechaInput(row["Fecha Vencimiento RTV"]);
+    previsualizarAlerta("reg-u-fecha-rtv", "reg-u-alerta-rtv");
+    const tieneTC = (row["¿Tiene T.C.?"] || "").toUpperCase().startsWith("SI");
+    seleccionarTieneTC(tieneTC);
+    document.getElementById("reg-u-fecha-tc").value = ddmmyyyyAFechaInput(row["Fecha Vencimiento T.C."]);
+    previsualizarAlerta("reg-u-fecha-tc", "reg-u-alerta-tc");
+    document.getElementById("reg-u-estado").value = row["Estado de la Unidad"] === "ARRENDADA" ? "ARRENDADA" : "PROPIA";
+    document.getElementById("reg-u-poliza").value = (row["Cuenta con Poliza RC"] || "").toUpperCase() === "SI" ? "SI" : "NO";
+    document.getElementById("reg-u-btn-guardar").textContent = "Guardar cambios";
+    mostrarBannerEdicion("Unidad: " + row.Placa);
+  }
+  actualizarBloqueoTabsRegistro();
+  actualizarModoBotonesRegistro();
+  document.getElementById("registrar-msg").textContent = "";
+}
+
+function cancelarEdicionRegistro(){
+  editandoRegistro = null;
+  document.getElementById("registrar-editando-banner").classList.add("hidden");
+  document.getElementById("reg-p-btn-guardar").textContent = "Guardar proveedor";
+  limpiarFormularioProveedorNuevo();
+  limpiarFormularioConductorNuevo(true);
+  limpiarFormularioUnidadNueva(true);
+  actualizarBloqueoTabsRegistro();
+  actualizarModoBotonesRegistro();
+  document.getElementById("registrar-msg").textContent = "";
+}
+
+/* ---- Proveedor: alta / edición ---- */
+function limpiarFormularioProveedorNuevo(){
+  ["reg-p-ruc","reg-p-nombre","reg-p-sede"].forEach(id => document.getElementById(id).value = "");
+}
+
+async function guardarProveedorNuevo(){
+  const msg = document.getElementById("registrar-msg");
+  const nombre = document.getElementById("reg-p-nombre").value.trim();
+  if (!nombre){ msg.textContent = "Falta el nombre del proveedor."; return; }
+
+  const editando = editandoRegistro && editandoRegistro.tipo === "proveedor" ? editandoRegistro : null;
+  const datos = {
+    ruc: document.getElementById("reg-p-ruc").value.trim(),
+    proveedor: nombre,
+    zona: document.getElementById("reg-p-zona").value,
+    sede: document.getElementById("reg-p-sede").value.trim()
+  };
+  if (editando) datos.proveedorOriginal = editando.clave;
+
+  msg.textContent = "Guardando…";
+  try{
+    if (piuraEnDemo()){
+      if (editando){
+        const fila = basePiuraCache.proveedores.find(p => p.PROVEEDOR === editando.clave);
+        if (fila){ fila.RUC = datos.ruc; fila.PROVEEDOR = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
+      } else {
+        basePiuraCache.proveedores.push({ RUC: datos.ruc, PROVEEDOR: datos.proveedor, ESTADO:"POR INGRESAR", "CATEGORIA SERV.":"MATERIA PRIMA", ZONA: datos.zona, SEDE: datos.sede, RESPONSABLE:"" });
+      }
+      poblarSelectsProveedorRegistrar();
+    } else {
+      const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action: editando ? "actualizarProveedor" : "guardarProveedor", datos }) });
+      let data = {};
+      try{ data = await res.json(); }catch(e){}
+      if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
+      await refrescarBasePiuraTrasGuardar();
+    }
+    const creado = !editando;
+    editandoRegistro = null;
+    document.getElementById("registrar-editando-banner").classList.add("hidden");
+    document.getElementById("reg-p-btn-guardar").textContent = "Guardar proveedor";
+    limpiarFormularioProveedorNuevo();
+    if (creado){
+      // Encadenado: recién creado, se desbloquean Conductor/Unidad y seguimos
+      // directo a darle de alta su unidad.
+      proveedorActivo = datos.proveedor;
+      actualizarBloqueoTabsRegistro();
+      seleccionarTipoRegistro("unidad", true);
+      actualizarModoBotonesRegistro();
+      document.getElementById("reg-u-proveedor").value = datos.proveedor;
+      document.getElementById("reg-u-ruc").value = datos.ruc;
+      document.getElementById("reg-u-zona").value = datos.zona;
+      document.getElementById("reg-u-sede").value = datos.sede;
+      msg.textContent = "Proveedor guardado ✔ — ahora registra su primera unidad.";
+    } else {
+      proveedorActivo = datos.proveedor; // por si le cambiaron el nombre al editar
+      msg.textContent = "Proveedor actualizado ✔";
+    }
+  }catch(e){
+    msg.textContent = "No se pudo guardar: " + e.message;
+  }
+}
+
+/* ---- Conductor: alta (lista) / edición / baja con reemplazo ---- */
+function limpiarFormularioConductorNuevo(resetProveedor){
+  ["reg-c-dni","reg-c-nombre","reg-c-ruc","reg-c-sede","reg-c-licencia","reg-c-categoria",
+   "reg-c-fecha-lic","reg-c-alerta-lic","reg-c-tiposctr","reg-c-aseguradora-sctr","reg-c-fecha-sctr","reg-c-alerta-sctr"]
+    .forEach(id => document.getElementById(id).value = "");
+  if (resetProveedor) document.getElementById("reg-c-proveedor").value = "";
+}
+
+function leerDatosConductorForm(){
+  return {
+    dni: document.getElementById("reg-c-dni").value.trim(),
+    conductor: document.getElementById("reg-c-nombre").value.trim(),
+    ruc: document.getElementById("reg-c-ruc").value.trim(),
+    proveedor: document.getElementById("reg-c-proveedor").value,
+    zona: document.getElementById("reg-c-zona").value,
+    sede: document.getElementById("reg-c-sede").value.trim(),
+    numLicencia: document.getElementById("reg-c-licencia").value.trim(),
+    categoriaLicencia: document.getElementById("reg-c-categoria").value.trim(),
+    fechaRevalidacionLic: document.getElementById("reg-c-fecha-lic").value,
+    tipoSctr: document.getElementById("reg-c-tiposctr").value.trim(),
+    aseguradoraSctr: document.getElementById("reg-c-aseguradora-sctr").value.trim(),
+    fechaVencimientoSctr: document.getElementById("reg-c-fecha-sctr").value
+  };
+}
+
+// + Agregar a la lista (todavía no se guarda nada — se junta antes de mandar todo junto).
+function agregarConductorALista(){
+  const msg = document.getElementById("registrar-msg");
+  const datos = leerDatosConductorForm();
+  if (!datos.dni){ msg.textContent = "Falta el DNI."; return; }
+  if (!datos.conductor){ msg.textContent = "Falta el nombre del conductor."; return; }
+  conductoresPendientesRegistro.push(datos);
+  limpiarFormularioConductorNuevo(false); // mantiene el proveedor puesto, para seguir agregando
+  renderListaConductoresRegistro();
+  msg.textContent = "Agregado a la lista — puedes seguir cargando conductores o guardar cuando termines.";
+}
+
+function quitarConductorDeLista(i){
+  conductoresPendientesRegistro.splice(i, 1);
+  renderListaConductoresRegistro();
+}
+
+function renderListaConductoresRegistro(){
+  const cont = document.getElementById("reg-c-lista");
+  cont.innerHTML = conductoresPendientesRegistro.map((d, i) => `
+    <div class="list-item">
+      <div class="li-main"><div class="li-top"><span class="placa">${d.conductor}</span></div><div class="li-sub">DNI ${d.dni}</div></div>
+      <button class="rm-btn" onclick="quitarConductorDeLista(${i})">✕</button>
+    </div>`).join("");
+  actualizarModoBotonesRegistro();
+}
+
+async function crearConductorEnBackend_(datos){
+  if (piuraEnDemo()){
+    basePiuraCache.conductores.push({ DNI: datos.dni, Conductor: datos.conductor, RUC: datos.ruc, PROVEEDOR: datos.proveedor, ZONA: datos.zona, SEDE: datos.sede, Estado:"POR INGRESAR" });
+    return;
+  }
+  const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"guardarConductor", datos }) });
+  let data = {};
+  try{ data = await res.json(); }catch(e){}
+  if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
+}
+
+// Guarda de verdad todos los conductores que se fueron cargando a la lista.
+async function guardarTodosConductores(){
+  const msg = document.getElementById("registrar-msg");
+  if (!conductoresPendientesRegistro.length){ msg.textContent = "Agrega al menos un conductor a la lista."; return; }
+  msg.textContent = "Guardando…";
+  try{
+    for (const datos of conductoresPendientesRegistro){
+      await crearConductorEnBackend_(datos);
+    }
+    if (!piuraEnDemo()) await refrescarBasePiuraTrasGuardar();
+    const cantidad = conductoresPendientesRegistro.length;
+    conductoresPendientesRegistro = [];
+    renderListaConductoresRegistro();
+    msg.textContent = cantidad + " conductor(es) guardado(s) ✔";
+  }catch(e){
+    msg.textContent = "No se pudo guardar: " + e.message + " — lo que ya se alcanzó a guardar antes del error quedó hecho; corrige y reintenta con lo que falte.";
+  }
+}
+
+// Edición de un conductor ya existente (encontrado con el buscador) — se
+// guarda directo, sin pasar por la lista.
+async function guardarConductorNuevo(){
+  const msg = document.getElementById("registrar-msg");
+  if (!editandoRegistro || editandoRegistro.tipo !== "conductor"){ msg.textContent = "Nada que editar."; return; }
+  const datos = leerDatosConductorForm();
+  if (!datos.dni){ msg.textContent = "Falta el DNI."; return; }
+  if (!datos.conductor){ msg.textContent = "Falta el nombre del conductor."; return; }
+  datos.dniOriginal = editandoRegistro.clave;
+
+  msg.textContent = "Guardando…";
+  try{
+    if (piuraEnDemo()){
+      const fila = basePiuraCache.conductores.find(c => c.DNI === editandoRegistro.clave);
+      if (fila){ fila.DNI = datos.dni; fila.Conductor = datos.conductor; fila.RUC = datos.ruc; fila.PROVEEDOR = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
+    } else {
+      const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"actualizarConductor", datos }) });
+      let data = {};
+      try{ data = await res.json(); }catch(e){}
+      if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
+      await refrescarBasePiuraTrasGuardar();
+    }
+    editandoRegistro = null;
+    document.getElementById("registrar-editando-banner").classList.add("hidden");
+    limpiarFormularioConductorNuevo(true);
+    actualizarModoBotonesRegistro();
+    msg.textContent = "Conductor actualizado ✔";
+  }catch(e){
+    msg.textContent = "No se pudo guardar: " + e.message;
+  }
+}
+
+async function darDeBajaConductor(){
+  const msg = document.getElementById("registrar-msg");
+  if (!editandoRegistro || editandoRegistro.tipo !== "conductor"){
+    msg.textContent = "Primero busca y abre el conductor que vas a dar de baja."; return;
+  }
+  const reemplazo = document.getElementById("reg-c-reemplazo").value.trim();
+  if (!reemplazo){ msg.textContent = "Escribe el nombre del conductor de reemplazo."; return; }
+  const dniSaliente = editandoRegistro.clave;
+  const proveedorSaliente = document.getElementById("reg-c-proveedor").value;
+
+  msg.textContent = "Guardando…";
+  try{
+    if (piuraEnDemo()){
+      const fila = basePiuraCache.conductores.find(c => c.DNI === dniSaliente);
+      if (fila){ fila.Estado = "INACTIVO"; fila.CONDICION = "INACTIVO - Reemplazo: " + reemplazo; }
+    } else {
+      const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"desactivarConductor", datos:{ dni: dniSaliente, reemplazo } }) });
+      let data = {};
+      try{ data = await res.json(); }catch(e){}
+      if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
+      await refrescarBasePiuraTrasGuardar();
+    }
+    editandoRegistro = null;
+    document.getElementById("registrar-editando-banner").classList.add("hidden");
+    limpiarFormularioConductorNuevo(false);
+    document.getElementById("reg-c-nombre").value = reemplazo;
+    document.getElementById("reg-c-proveedor").value = proveedorSaliente;
+    actualizarModoBotonesRegistro();
+    msg.textContent = "Conductor anterior marcado como inactivo. Completa el DNI y los datos de \"" + reemplazo + "\" y agrégalo a la lista.";
+  }catch(e){
+    msg.textContent = "No se pudo guardar: " + e.message;
+  }
+}
+
+/* ---- Unidad: alta (lista) / edición ---- */
+function limpiarFormularioUnidadNueva(resetProveedor){
+  ["reg-u-placa","reg-u-tipo","reg-u-ruc","reg-u-sede","reg-u-pasajeros","reg-u-anio",
+   "reg-u-fecha-soat","reg-u-alerta-soat","reg-u-fecha-rtv","reg-u-alerta-rtv","reg-u-fecha-tc","reg-u-alerta-tc"]
+    .forEach(id => document.getElementById(id).value = "");
+  if (resetProveedor) document.getElementById("reg-u-proveedor").value = "";
+  document.getElementById("reg-u-estado").value = "PROPIA";
+  document.getElementById("reg-u-poliza").value = "NO";
+  seleccionarTieneTC(false);
+}
+
+function leerDatosUnidadForm(){
+  return {
+    placa: document.getElementById("reg-u-placa").value.trim(),
+    tipoUnidad: document.getElementById("reg-u-tipo").value.trim(),
+    ruc: document.getElementById("reg-u-ruc").value.trim(),
+    proveedor: document.getElementById("reg-u-proveedor").value,
+    zona: document.getElementById("reg-u-zona").value,
+    sede: document.getElementById("reg-u-sede").value.trim(),
+    numPasajeros: document.getElementById("reg-u-pasajeros").value.trim(),
+    anioFab: document.getElementById("reg-u-anio").value.trim(),
+    fechaVencimientoSoat: document.getElementById("reg-u-fecha-soat").value,
+    fechaVencimientoRtv: document.getElementById("reg-u-fecha-rtv").value,
+    tieneTC: tieneTCActual,
+    fechaVencimientoTc: tieneTCActual ? document.getElementById("reg-u-fecha-tc").value : "",
+    estadoUnidad: document.getElementById("reg-u-estado").value,
+    polizaRC: document.getElementById("reg-u-poliza").value === "SI"
+  };
+}
+
+function agregarUnidadALista(){
+  const msg = document.getElementById("registrar-msg");
+  const datos = leerDatosUnidadForm();
+  if (!datos.placa){ msg.textContent = "Falta la placa."; return; }
+  unidadesPendientesRegistro.push(datos);
+  limpiarFormularioUnidadNueva(false); // mantiene el proveedor puesto, para seguir agregando
+  renderListaUnidadesRegistro();
+  msg.textContent = "Agregada a la lista — puedes seguir cargando unidades o guardar cuando termines.";
+}
+
+function quitarUnidadDeLista(i){
+  unidadesPendientesRegistro.splice(i, 1);
+  renderListaUnidadesRegistro();
+}
+
+function renderListaUnidadesRegistro(){
+  const cont = document.getElementById("reg-u-lista");
+  cont.innerHTML = unidadesPendientesRegistro.map((d, i) => `
+    <div class="list-item">
+      <div class="li-main"><div class="li-top"><span class="placa">${d.placa}</span></div><div class="li-sub">${d.tipoUnidad || ""}</div></div>
+      <button class="rm-btn" onclick="quitarUnidadDeLista(${i})">✕</button>
+    </div>`).join("");
+  actualizarModoBotonesRegistro();
+}
+
+async function crearUnidadEnBackend_(datos){
+  if (piuraEnDemo()){
+    basePiuraCache.unidades.push({ Placa: datos.placa, "Tipo de Unidad": datos.tipoUnidad, RUC: datos.ruc, Proveedor: datos.proveedor, ZONA: datos.zona, SEDE: datos.sede, "N° Pasajeros": datos.numPasajeros, Estado:"POR INGRESAR" });
+    return;
+  }
+  const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"guardarUnidad", datos }) });
+  let data = {};
+  try{ data = await res.json(); }catch(e){}
+  if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
+}
+
+// Guarda de verdad todas las unidades de la lista y, al terminar, encadena
+// directo a Conductor (con el mismo proveedor ya puesto).
+async function guardarTodasUnidades(){
+  const msg = document.getElementById("registrar-msg");
+  if (!unidadesPendientesRegistro.length){ msg.textContent = "Agrega al menos una unidad a la lista."; return; }
+  msg.textContent = "Guardando…";
+  try{
+    const primera = unidadesPendientesRegistro[0];
+    for (const datos of unidadesPendientesRegistro){
+      await crearUnidadEnBackend_(datos);
+    }
+    if (!piuraEnDemo()) await refrescarBasePiuraTrasGuardar();
+    const cantidad = unidadesPendientesRegistro.length;
+    unidadesPendientesRegistro = [];
+    renderListaUnidadesRegistro();
+    seleccionarTipoRegistro("conductor", true);
+    document.getElementById("reg-c-proveedor").value = primera.proveedor;
+    document.getElementById("reg-c-ruc").value = primera.ruc;
+    document.getElementById("reg-c-zona").value = primera.zona;
+    document.getElementById("reg-c-sede").value = primera.sede;
+    msg.textContent = cantidad + " unidad(es) guardada(s) ✔ — ahora registra su(s) conductor(es).";
+  }catch(e){
+    msg.textContent = "No se pudo guardar: " + e.message + " — lo que ya se alcanzó a guardar antes del error quedó hecho; corrige y reintenta con lo que falte.";
+  }
+}
+
+// Edición de una unidad ya existente (encontrada con el buscador) — se
+// guarda directo, sin pasar por la lista.
+async function guardarUnidadNueva(){
+  const msg = document.getElementById("registrar-msg");
+  if (!editandoRegistro || editandoRegistro.tipo !== "unidad"){ msg.textContent = "Nada que editar."; return; }
+  const datos = leerDatosUnidadForm();
+  if (!datos.placa){ msg.textContent = "Falta la placa."; return; }
+  datos.placaOriginal = editandoRegistro.clave;
+
+  msg.textContent = "Guardando…";
+  try{
+    if (piuraEnDemo()){
+      const fila = basePiuraCache.unidades.find(u => normalizarPlaca(u.Placa) === normalizarPlaca(editandoRegistro.clave));
+      if (fila){ fila.Placa = datos.placa; fila["Tipo de Unidad"] = datos.tipoUnidad; fila.RUC = datos.ruc; fila.Proveedor = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
+    } else {
+      const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"actualizarUnidad", datos }) });
+      let data = {};
+      try{ data = await res.json(); }catch(e){}
+      if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
+      await refrescarBasePiuraTrasGuardar();
+    }
+    editandoRegistro = null;
+    document.getElementById("registrar-editando-banner").classList.add("hidden");
+    limpiarFormularioUnidadNueva(true);
+    actualizarModoBotonesRegistro();
+    msg.textContent = "Unidad actualizada ✔";
+  }catch(e){
+    msg.textContent = "No se pudo guardar: " + e.message;
+  }
+}
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+function initSettings(){
+  document.getElementById("registro-url").value = getRegistroUrl();
+  document.getElementById("piura-url").value = getPiuraUrl();
+  document.getElementById("pin-nuevo").value = getGaritaPin();
+  updateConnStatus();
+}
+function updateConnStatus(){
+  const du = document.getElementById("conn-dot-u");
+  const tu = document.getElementById("conn-text-u");
+  const dr = document.getElementById("conn-dot-r");
+  const tr = document.getElementById("conn-text-r");
+  if (piuraEnDemo()){ du.className = "status-dot off"; tu.textContent = "Base Piura: modo demo"; }
+  else { du.className = "status-dot on"; tu.textContent = "Base Piura: conectado"; }
+  if (registroEnDemo()){ dr.className = "status-dot off"; tr.textContent = "Registro: modo demo"; }
+  else { dr.className = "status-dot on"; tr.textContent = "Registro: conectado"; }
+}
+function guardarConfig(){
+  const r = document.getElementById("registro-url").value.trim();
+  const pz = document.getElementById("piura-url").value.trim();
+  const pin = document.getElementById("pin-nuevo").value.trim();
+  if (r) localStorage.setItem(LS_KEYS.registroUrl, r); else localStorage.removeItem(LS_KEYS.registroUrl);
+  if (pz) localStorage.setItem(LS_KEYS.piuraUrl, pz); else localStorage.removeItem(LS_KEYS.piuraUrl);
+  if (pin) localStorage.setItem("acc_garita_pin", pin);
+  basePiuraCache = null;
+  docCacheCargado = false;
+  updateConnStatus();
+}
+function usarDemo(){
+  localStorage.setItem(LS_KEYS.registroUrl, "__demo__");
+  localStorage.setItem(LS_KEYS.piuraUrl, "__demo__");
+  document.getElementById("registro-url").value = "";
+  document.getElementById("piura-url").value = "";
+  basePiuraCache = null;
+  docCacheCargado = false;
+  updateConnStatus();
+}
+
+/* =========================================================
+   PWA install + service worker
+   ========================================================= */
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  });
+}
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const tip = document.getElementById("install-tip");
+  tip.textContent = "Toca aquí para instalar la app en tu celular";
+  tip.style.cursor = "pointer";
+  tip.onclick = () => { deferredPrompt.prompt(); };
+});
+</script>
+</body>
+</html>

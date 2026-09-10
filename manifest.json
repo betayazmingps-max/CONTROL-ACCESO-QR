@@ -1,0 +1,14 @@
+{
+  "name": "Control de Acceso - Transporte de Personal",
+  "short_name": "Acceso QR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EDEAF7",
+  "theme_color": "#5B2A9E",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
