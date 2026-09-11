@@ -1026,6 +1026,12 @@
       <p class="hint" style="margin-top:14px;">
         Las placas, conductores y su documentación (SOAT/RTV/SCTR) salen de la Base Piura. Cada marcación (pedateo) se guarda en la hoja "Registro Accesos QR". Solo cambia estas URLs si te pasan un nuevo despliegue.
       </p>
+      <div class="field" style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
+        <label for="emergencia-licencia">Acceso manual de emergencia (Conductor)</label>
+        <input type="text" id="emergencia-licencia" placeholder="N° de Licencia de Conducir" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
+        <button class="btn ghost block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar mi viaje</button>
+        <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.) — el Conductor normalmente entra escaneando su Licencia.</p>
+      </div>
     </div>
   </section>
 
@@ -3448,6 +3454,18 @@ function usarDemo(){
   basePiuraCache = null;
   docCacheCargado = false;
   updateConnStatus();
+}
+
+// Acceso de emergencia desde Configuración, escondido detrás del PIN de
+// Garita — el Conductor normalmente entra escaneando su Licencia, esto es
+// solo por si el código de barras no se puede leer (dañado, sin cámara).
+async function accesoManualEmergencia(){
+  const licencia = document.getElementById("emergencia-licencia").value.trim();
+  if (!licencia) return;
+  goTo("conductor");
+  await initConductor();
+  document.getElementById("dni-input").value = licencia;
+  await verificarDniConductor();
 }
 
 /* =========================================================
