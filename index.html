@@ -73,6 +73,23 @@
     .topbar{ padding:14px 14px; }
     .qr-card{ padding:20px 16px; }
   }
+  /* Programar y Registrar tienen tablas/listas anchas (la de Programar
+     necesita 760px para no scrollear) — en pantallas grandes esas 2
+     pantallas usan mucho más ancho que el resto, y el formulario se queda
+     centrado y angosto adentro para no verse estirado feo. */
+  @media (min-width: 720px){
+    #app:has(#screen-logistica-programar:not(.hidden)),
+    #app:has(#screen-logistica-registrar:not(.hidden)){
+      max-width: min(900px, 94vw);
+    }
+    #screen-logistica-programar .prog-form,
+    #screen-logistica-registrar .prog-form{
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+      width: 100%;
+    }
+  }
   html, body{ overflow-x:hidden; }
 
   .topbar{
