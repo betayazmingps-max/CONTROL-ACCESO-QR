@@ -1555,14 +1555,13 @@ function iniciarEscaneoDni(){
   // sin ningún aviso — ahora se muestra un mensaje claro en ese caso.
   try{
     if (typeof Html5Qrcode === "undefined") throw new Error("Librería de cámara no disponible");
-    html5QrCodeDni = new Html5Qrcode("conductor-dni-reader", {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.PDF_417,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.QR_CODE
-      ]
-    });
+    // Igual de simple que Garita/Producción (que sí abren la cámara sin
+    // problema) — sin pedirle un "formatsToSupport" en especial, que era
+    // la única diferencia real con esos dos y sospechoso de ser la causa
+    // de que a este no le abriera la cámara. Sin esto, la librería igual
+    // reconoce códigos de barra (PDF417/Code128/etc.) y QR, solo que no
+    // se le restringe de entrada a cuáles buscar.
+    html5QrCodeDni = new Html5Qrcode("conductor-dni-reader");
     // Sin "qrbox": la librería intentaba calcular un recuadro de escaneo a
     // partir del tamaño real de la cámara, y en algunos celulares ese
     // cálculo salía en 0 o muy chico — la cámara pedía permiso y "abría"
