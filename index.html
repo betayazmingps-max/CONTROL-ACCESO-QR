@@ -549,6 +549,15 @@
       <div id="pin-error" class="hidden" style="color:var(--alert); font-size:13px; margin-top:8px;">Usuario o contraseña incorrectos.</div>
       <div id="login-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
       <button class="btn block" style="margin-top:16px;" onclick="verificarLogin()">Ingresar</button>
+
+      <div id="settings-acceso-conductor" class="hidden" style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
+        <button type="button" class="btn ghost block" onclick="toggleAccesoConductorEmergencia()">¿Eres Conductor y no puedes escanear tu DNI?</button>
+        <div id="settings-acceso-conductor-form" class="hidden" style="margin-top:10px;">
+          <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
+          <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar mi viaje</button>
+          <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.) — el Conductor normalmente entra escaneando su DNI desde "Soy Conductor".</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1026,12 +1035,6 @@
       <p class="hint" style="margin-top:14px;">
         Las placas, conductores y su documentación (SOAT/RTV/SCTR) salen de la Base Piura. Cada marcación (pedateo) se guarda en la hoja "Registro Accesos QR". Solo cambia estas URLs si te pasan un nuevo despliegue.
       </p>
-      <div class="field" style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
-        <label for="emergencia-licencia">Acceso manual de emergencia (Conductor)</label>
-        <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
-        <button class="btn ghost block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar mi viaje</button>
-        <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.) — el Conductor normalmente entra escaneando su DNI.</p>
-      </div>
     </div>
   </section>
 
@@ -1385,7 +1388,15 @@ function abrirPinGarita(destino){
   document.getElementById("login-usuario").value = "";
   document.getElementById("login-contrasena").value = "";
   document.getElementById("pin-error").classList.add("hidden");
+  document.getElementById("settings-acceso-conductor").classList.toggle("hidden", pinDestino !== "settings");
+  document.getElementById("settings-acceso-conductor-form").classList.add("hidden");
+  document.getElementById("emergencia-licencia").value = "";
   setTimeout(() => document.getElementById(esGarita ? "pin-input" : "login-usuario").focus(), 50);
+}
+function toggleAccesoConductorEmergencia(){
+  const form = document.getElementById("settings-acceso-conductor-form");
+  form.classList.toggle("hidden");
+  if (!form.classList.contains("hidden")) setTimeout(() => document.getElementById("emergencia-licencia").focus(), 50);
 }
 async function verificarLogin(){
   const errorEl = document.getElementById("pin-error");
@@ -3459,9 +3470,9 @@ function usarDemo(){
   updateConnStatus();
 }
 
-// Acceso de emergencia desde Configuración, escondido detrás del PIN de
-// Garita — el Conductor normalmente entra escaneando su Licencia, esto es
-// solo por si el código de barras no se puede leer (dañado, sin cámara).
+// Acceso de emergencia: vive en la pantalla de login de Configuración (no
+// requiere usuario/contraseña) porque el Conductor no tiene esas
+// credenciales — solo por si su DNI no se puede escanear (dañado, sin cámara).
 async function accesoManualEmergencia(){
   const licencia = document.getElementById("emergencia-licencia").value.trim();
   if (!licencia) return;
