@@ -73,14 +73,15 @@
     .topbar{ padding:14px 14px; }
     .qr-card{ padding:20px 16px; }
   }
-  /* Programar y Registrar tienen tablas/listas anchas (la de Programar
-     necesita 760px para no scrollear) — en pantallas grandes esas 2
-     pantallas usan mucho más ancho que el resto, y el formulario se queda
-     centrado y angosto adentro para no verse estirado feo. */
+  /* Programar y Registrar muestran toda la información sin abreviar (tabla
+     ancha) — en pantallas grandes estas 2 pantallas usan toda la pantalla
+     disponible (no la tarjeta angosta) para que se vea completa sin
+     scroll horizontal; el formulario de agregar se queda centrado y
+     angosto adentro para no verse estirado feo. */
   @media (min-width: 720px){
     #app:has(#screen-logistica-programar:not(.hidden)),
     #app:has(#screen-logistica-registrar:not(.hidden)){
-      max-width: min(900px, 94vw);
+      max-width: 98vw;
     }
     #screen-logistica-programar .prog-form,
     #screen-logistica-registrar .prog-form{
@@ -332,18 +333,12 @@
   .prog-day.on{ background:#FFE066; border-color:#E0B800; color:#5c4a00; }
 
   .prog-table-wrap{ overflow-x:auto; border-radius:var(--radius-sm); border:1px solid var(--line); }
-  .prog-table{ border-collapse:collapse; font-size:12.5px; table-layout:fixed; width:815px; }
-  .prog-table th, .prog-table td{ border:1px solid var(--line); padding:8px 9px; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prog-table{ border-collapse:collapse; width:100%; font-size:12.5px; min-width:820px; }
+  .prog-table th, .prog-table td{ border:1px solid var(--line); padding:6px; text-align:left; white-space:nowrap; }
   .prog-table th{ background:var(--purple-soft); color:var(--purple); font-family:"Space Grotesk"; font-size:11px; }
   .prog-table tbody tr:hover{ background:var(--bg); }
-  .prog-table td.celda-trunc{ max-width:150px; overflow:hidden; text-overflow:ellipsis; }
-  .prog-table td.dias-mini{ white-space:nowrap; }
-  .dias-mini span{
-    display:inline-flex; align-items:center; justify-content:center;
-    width:17px; height:17px; border-radius:50%; font-size:9px; font-weight:700;
-    background:var(--bg); color:var(--ink-dim); margin-right:2px;
-  }
-  .dias-mini span.on{ background:#FFE066; color:#5c4a00; }
+  .prog-table td.day-on{ background:#FFE066; }
+  .prog-table td.day-off{ background:#fff; }
   .prog-table .rm-btn{ color:var(--alert); font-weight:700; cursor:pointer; background:none; border:none; font-family:inherit; font-size:14px; padding:2px 4px; }
 
   .prog-week-label{ font-family:"Space Grotesk"; font-weight:700; font-size:14px; color:var(--purple); }
@@ -2443,43 +2438,30 @@ function renderTablaProgramacion(){
       "Semana de: " + d.toLocaleDateString("es-PE", { weekday:"long", day:"2-digit", month:"long" });
   }
 
-  // Tabla compacta: se quitaron "Descuento" (siempre 0 ahora) y "Tarifa
-  // Total" (ya es igual a Tarifa), los 7 días se juntan en una sola celda
-  // con puntitos en vez de 7 columnas sueltas, y los textos largos
-  // (Proveedor/Conductor/Ruta) se truncan con "…" y tooltip — así entra
-  // completa sin scroll horizontal en la mayoría de pantallas.
+  // Se muestra TODA la información completa (sin abreviar ni truncar) —
+  // se quitaron solo "Descuento" y "Tarifa Total" porque ya son redundantes
+  // (siempre 0 / siempre igual a Tarifa). Cada día de la semana es su
+  // propia columna, como antes. La tabla usa el ancho que necesite — la
+  // pantalla se ensancha para que quepa (ver el media query de #app).
   const table = document.getElementById("prog-table");
-  // Anchos fijos (con table-layout:fixed) para que el truncado con "…" de
-  // Proveedor/Conductor/Ruta funcione de verdad, en vez de que la tabla se
-  // estire sola según el texto más largo.
-  const colgroup = `<colgroup>
-    <col style="width:95px;"><col style="width:95px;"><col style="width:65px;">
-    <col style="width:40px;"><col style="width:50px;"><col style="width:110px;">
-    <col style="width:45px;"><col style="width:50px;"><col style="width:55px;">
-    <col style="width:150px;"><col style="width:60px;">
-  </colgroup>`;
-  const cabecera = `<tr><th>Proveedor</th><th>Conductor</th><th>Placa</th><th>Viaje</th><th>Cap.</th><th>Ruta</th><th title="Operación">Oper.</th><th>Tarifa</th><th>Clasif.</th><th>Días</th><th></th></tr>`;
+  const headDias = DIAS_PROG.map(d => `<th title="${d.label}">${d.label[0]}</th>`).join("");
+  const cabecera = `<tr><th>Proveedor</th><th>Conductor</th><th>Placa</th><th>Viaje</th><th>Cap.</th><th>Ruta</th><th>Operación</th><th>Tarifa</th><th>Clasif.</th>${headDias}<th></th></tr>`;
   if (!filasProgramacion.length){
-    table.innerHTML = colgroup + cabecera +
-      `<tr><td colspan="11" style="text-align:center; color:var(--ink-dim);">Aún no hay nada programado esta semana.</td></tr>`;
+    table.innerHTML = cabecera +
+      `<tr><td colspan="${10 + DIAS_PROG.length}" style="text-align:center; color:var(--ink-dim);">Aún no hay nada programado esta semana.</td></tr>`;
     return;
   }
   const filas = filasProgramacion.map((f, i) => `
     <tr style="${f.yaGuardada ? "background:var(--purple-soft);" : ""}">
-      <td class="celda-trunc" title="${f.proveedor}">${f.proveedor}</td>
-      <td class="celda-trunc" title="${f.conductor}">${f.conductor}</td>
-      <td>${f.placa}</td><td>${f.viaje}</td><td>${f.capacidad}</td>
-      <td class="celda-trunc" title="${f.ruta}">${f.ruta}</td>
-      <td>${f.operacion === "TRASLADO DE JABAS" ? "Jabas" : "MP"}</td>
-      <td>${f.tarifa}</td>
-      <td>${f.clasificacion === "Adicional" ? "Adic." : "Normal"}</td>
-      <td class="dias-mini">${DIAS_PROG.map(d => `<span class="${f.dias[d.key] ? "on" : ""}" title="${d.label}">${d.label[0]}</span>`).join("")}</td>
+      <td>${f.proveedor}</td><td>${f.conductor}</td><td>${f.placa}</td><td>${f.viaje}</td><td>${f.capacidad}</td>
+      <td>${f.ruta}</td><td>${f.operacion}</td><td>${f.tarifa}</td><td>${f.clasificacion}</td>
+      ${DIAS_PROG.map(d => `<td class="${f.dias[d.key] ? "day-on" : "day-off"}"></td>`).join("")}
       <td style="white-space:nowrap;">
         <button class="rm-btn" style="color:var(--purple);" onclick="editarFilaProgramacion(${i})" title="Editar">✎</button>
         <button class="rm-btn" onclick="quitarFilaProgramacion(${i})" title="Quitar">✕</button>
       </td>
     </tr>`).join("");
-  table.innerHTML = colgroup + cabecera + filas;
+  table.innerHTML = cabecera + filas;
 }
 
 function getProgramacionDemo(){
