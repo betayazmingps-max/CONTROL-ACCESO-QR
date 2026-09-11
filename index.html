@@ -1541,24 +1541,20 @@ function iniciarEscaneoDni(){
         Html5QrcodeSupportedFormats.QR_CODE
       ]
     });
+    // Sin "qrbox": la librería intentaba calcular un recuadro de escaneo a
+    // partir del tamaño real de la cámara, y en algunos celulares ese
+    // cálculo salía en 0 o muy chico — la cámara pedía permiso y "abría"
+    // pero no se veía nada. Sin qrbox, la librería lee del cuadro
+    // completo (más simple y sin ese riesgo); el recuadro verde que se ve
+    // en pantalla es solo una guía visual nuestra, aparte de la librería.
     html5QrCodeDni.start(
       { facingMode: "environment" },
-      {
-        fps: 10,
-        // Un tamaño fijo (ej. 260x140) puede ser más grande que la cámara
-        // real del celular y la librería simplemente no abre nada, sin
-        // avisar — con una función se ajusta solo al tamaño real de cada
-        // cámara.
-        qrbox: (viewfinderWidth, viewfinderHeight) => ({
-          width: Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.85),
-          height: Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.45)
-        })
-      },
+      { fps: 10 },
       onCodigoBarraDniDetectado,
       () => {}
     ).catch(err => {
       console.error(err);
-      errEl.textContent = "No se pudo abrir la cámara. Revisa permisos del navegador o intenta con otro navegador.";
+      errEl.textContent = "No se pudo abrir la cámara: " + ((err && err.message) || err) + ". Revisa permisos del navegador.";
       errEl.classList.remove("hidden");
     });
   }catch(e){
