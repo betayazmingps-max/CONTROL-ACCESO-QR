@@ -1573,7 +1573,23 @@ function iniciarEscaneoDni(){
       { fps: 10 },
       onCodigoBarraDniDetectado,
       () => {}
-    ).catch(err => {
+    ).then(() => {
+      // La librería dijo que sí arrancó — se revisa el <video> real que
+      // dejó adentro para saber si de verdad tiene imagen o quedó en 0x0
+      // (que se vería igual de "en blanco" aunque técnicamente "funcionó").
+      setTimeout(() => {
+        const video = document.querySelector("#conductor-dni-reader video");
+        if (!video){
+          errEl.textContent = "Diagnóstico: la cámara \"arrancó\" pero no se encontró ningún video en pantalla.";
+          errEl.classList.remove("hidden");
+          return;
+        }
+        if (!video.videoWidth || !video.videoHeight){
+          errEl.textContent = `Diagnóstico: hay video pero sin imagen (tamaño ${video.videoWidth}x${video.videoHeight}, listo=${video.readyState}). Prueba cerrar otras apps que usen la cámara.`;
+          errEl.classList.remove("hidden");
+        }
+      }, 1500);
+    }).catch(err => {
       console.error(err);
       errEl.textContent = "No se pudo abrir la cámara: " + ((err && err.message) || err) + ". Revisa permisos del navegador.";
       errEl.classList.remove("hidden");
