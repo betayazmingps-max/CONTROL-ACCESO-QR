@@ -1580,15 +1580,15 @@ async function iniciarEscaneoDni(){
     // reconoce códigos de barra (PDF417/Code128/etc.) y QR, solo que no
     // se le restringe de entrada a cuáles buscar.
     html5QrCodeDni = new Html5Qrcode("conductor-dni-reader");
-    // Sin "qrbox": la librería intentaba calcular un recuadro de escaneo a
-    // partir del tamaño real de la cámara, y en algunos celulares ese
-    // cálculo salía en 0 o muy chico — la cámara pedía permiso y "abría"
-    // pero no se veía nada. Sin qrbox, la librería lee del cuadro
-    // completo (más simple y sin ese riesgo); el recuadro verde que se ve
-    // en pantalla es solo una guía visual nuestra, aparte de la librería.
+    // Un qrbox calculado dinámicamente causaba el problema de la cámara en
+    // blanco, y sin ningún qrbox escanea el cuadro completo — que para un
+    // código de barras chico y lejos de la cámara es peor (se pierde
+    // resolución/contraste). Se usa el mismo número fijo y simple que ya
+    // funciona bien en Garita/Producción (230), que además evita el error
+    // de "tamaño calculado < 50px".
     html5QrCodeDni.start(
       { facingMode: "environment" },
-      { fps: 10 },
+      { fps: 10, qrbox: 230 },
       onCodigoBarraDniDetectado,
       () => {}
     ).then(() => {
