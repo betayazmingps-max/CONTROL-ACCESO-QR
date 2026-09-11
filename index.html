@@ -488,19 +488,19 @@
         <div class="icon-chip" style="width:52px; height:52px; margin-bottom:6px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>
         </div>
-        <div style="font-weight:700; font-size:16px; text-align:center;">Escanea tu Licencia de Conducir</div>
-        <p class="hint" style="text-align:center; margin:4px 0 0;">Con tu licencia buscamos el viaje que Logística te programó para hoy.</p>
+        <div style="font-weight:700; font-size:16px; text-align:center;">Escanea tu DNI</div>
+        <p class="hint" style="text-align:center; margin:4px 0 0;">Con tu DNI buscamos el viaje que Logística te programó para hoy.</p>
         <input type="hidden" id="dni-input">
         <div id="dni-error" class="dni-error hidden"></div>
         <div id="dni-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
-        <button class="btn block" style="margin-top:16px;" onclick="iniciarEscaneoDni()">📷 Escanear código de barras de la Licencia</button>
+        <button class="btn block" style="margin-top:16px;" onclick="iniciarEscaneoDni()">📷 Escanear código de barras del DNI</button>
       </div>
     </div>
 
     <div id="conductor-dni-scan-wrap" class="hidden">
       <div class="qr-card" style="padding:18px;">
-        <div style="font-weight:700; font-size:15px; text-align:center; margin-bottom:8px;">Escanea el código de barras de tu Licencia</div>
-        <p class="hint" style="text-align:center; margin:0 0 10px;">Apunta la cámara al código de barras de tu Licencia de Conducir.</p>
+        <div style="font-weight:700; font-size:15px; text-align:center; margin-bottom:8px;">Escanea el código de barras del DNI</div>
+        <p class="hint" style="text-align:center; margin:0 0 10px;">Apunta la cámara al código de barras que está atrás de tu DNI.</p>
         <div class="scan-wrap" id="dni-scan-wrap-visual">
           <div id="conductor-dni-reader"></div>
           <div class="reticle"><div class="box barra"><span></span><span></span><span></span><span></span></div></div>
@@ -1028,9 +1028,9 @@
       </p>
       <div class="field" style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
         <label for="emergencia-licencia">Acceso manual de emergencia (Conductor)</label>
-        <input type="text" id="emergencia-licencia" placeholder="N° de Licencia de Conducir" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
+        <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
         <button class="btn ghost block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar mi viaje</button>
-        <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.) — el Conductor normalmente entra escaneando su Licencia.</p>
+        <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.) — el Conductor normalmente entra escaneando su DNI.</p>
       </div>
     </div>
   </section>
@@ -1634,12 +1634,10 @@ async function detenerEscaneoDni(){
 let dniEscaneoBusy = false;
 async function onCodigoBarraDniDetectado(decodedText){
   if (dniEscaneoBusy) return;
-  // El N° de Licencia puede traer una letra adelante (ej. "B70870651"), no
-  // solo dígitos como el DNI.
-  const match = (decodedText || "").match(/[A-Za-z]?\d{8}/);
+  const match = (decodedText || "").match(/\d{8}/);
   if (!match){
     const el = document.getElementById("dni-scan-error");
-    el.textContent = "No se reconoció una Licencia válida en ese código. Intenta de nuevo, con mejor luz o más cerca.";
+    el.textContent = "No se reconoció un DNI válido en ese código. Intenta de nuevo, con mejor luz o más cerca.";
     el.classList.remove("hidden");
     return;
   }
@@ -1647,10 +1645,10 @@ async function onCodigoBarraDniDetectado(decodedText){
   await detenerEscaneoDni();
   document.getElementById("conductor-dni-wrap").classList.remove("hidden");
   document.getElementById("dni-input").value = match[0];
-  // Si la licencia que se sacó del código no coincide con ningún
-  // conductor, se muestra también el texto crudo que trae el código —
-  // ayuda a ver si el código trae otros datos antes/después y ajustar el
-  // heurístico si hace falta.
+  // Si el DNI que se sacó del código no coincide con ningún conductor, se
+  // muestra también el texto crudo que trae el código — ayuda a ver si el
+  // código trae otros datos antes/después y ajustar el heurístico si hace
+  // falta.
   await verificarDniConductor();
   const errorEl = document.getElementById("dni-error");
   if (!errorEl.classList.contains("hidden")){
@@ -1660,19 +1658,24 @@ async function onCodigoBarraDniDetectado(decodedText){
 }
 
 async function verificarDniConductor(){
-  const licencia = normalizarLicencia(document.getElementById("dni-input").value);
+  // Se volvió a validar por DNI: la Licencia de Conducir trae marca de agua
+  // (MTC) encima del código de barras y brillo del plástico laminado que la
+  // hacen muy difícil de leer con cámara — confirmado con otra app lectora
+  // de códigos aparte, no era un problema de esta app. El DNI (RENIEC) usa
+  // un formato estándar que sí lee bien siempre.
+  const dni = normalizarDNI(document.getElementById("dni-input").value);
   const errorEl = document.getElementById("dni-error");
   const loadingEl = document.getElementById("dni-loading");
   errorEl.classList.add("hidden");
-  if (!licencia){ errorEl.textContent = "Escanea tu Licencia de Conducir."; errorEl.classList.remove("hidden"); return; }
+  if (!dni){ errorEl.textContent = "Escanea tu DNI."; errorEl.classList.remove("hidden"); return; }
 
   loadingEl.classList.remove("hidden");
   if (!docCacheCargado) await cargarDocumentacion();
   loadingEl.classList.add("hidden");
 
-  const conductor = conductorPorLicencia[licencia];
+  const conductor = conductorPorDNI[dni];
   if (!conductor){
-    errorEl.textContent = "Licencia no encontrada. Verifica e intenta de nuevo.";
+    errorEl.textContent = "DNI no encontrado. Verifica e intenta de nuevo.";
     errorEl.classList.remove("hidden");
     return;
   }
