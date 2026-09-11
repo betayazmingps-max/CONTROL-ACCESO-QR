@@ -234,6 +234,12 @@
   /* El código de barras del DNI es horizontal, no cuadrado — el recuadro
      guía usa un rectángulo ancho en vez del cuadrado de Garita/Producción. */
   .reticle .box.barra{ width:82%; aspect-ratio:1.9/1; }
+  /* Sin esto, el recuadro guía (position:absolute) depende de que el video
+     de la cámara ya haya cargado para que .scan-wrap tenga alto real — si
+     tarda en aparecer (o el navegador es más lento), el recuadro queda sin
+     espacio donde dibujarse. Con un alto mínimo fijo, se ve desde el
+     primer instante aunque el video todavía esté cargando. */
+  #dni-scan-wrap-visual{ min-height:220px; }
   .reticle .box span{ position:absolute; width:26px; height:26px; border:3px solid var(--lime); }
   .reticle .box span:nth-child(1){ top:0; left:0; border-right:none; border-bottom:none; }
   .reticle .box span:nth-child(2){ top:0; right:0; border-left:none; border-bottom:none; }
