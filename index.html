@@ -226,6 +226,12 @@
 
   .scan-wrap{ position:relative; border-radius:var(--radius); overflow:hidden; border:1px solid var(--line); background:#000; }
   #reader{ background:#000; }
+  /* Sin qrbox definido, la librería a veces mete un <canvas> de sombreado
+     que tapa el video completo en vez de solo alrededor de un recuadro —
+     se fuerza a que no se vea, y que el <video> real quede siempre visible
+     y a tamaño completo. */
+  #conductor-dni-reader canvas{ display:none !important; }
+  #conductor-dni-reader video{ display:block !important; width:100% !important; height:auto !important; opacity:1 !important; }
   .reticle{
     position:absolute; inset:0; pointer-events:none;
     display:flex; align-items:center; justify-content:center;
