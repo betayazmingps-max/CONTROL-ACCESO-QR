@@ -1540,7 +1540,7 @@ function volverDni(){
 // heurístico más simple que funciona sin importar si el código trae más
 // datos aparte del DNI.
 let html5QrCodeDni = null;
-function iniciarEscaneoDni(){
+async function iniciarEscaneoDni(){
   document.getElementById("conductor-dni-wrap").classList.add("hidden");
   document.getElementById("conductor-dni-scan-wrap").classList.remove("hidden");
   const errEl = document.getElementById("dni-scan-error");
@@ -1553,6 +1553,7 @@ function iniciarEscaneoDni(){
     const enEjecucion = typeof Html5QrcodeScannerState !== "undefined" &&
       html5QrCodeDni.getState && html5QrCodeDni.getState() === Html5QrcodeScannerState.SCANNING;
     if (enEjecucion) return;
+    try{ await html5QrCodeDni.stop(); }catch(e){}
     try{ html5QrCodeDni.clear(); }catch(e){}
     html5QrCodeDni = null;
   }
@@ -1606,16 +1607,21 @@ function iniciarEscaneoDni(){
     errEl.classList.remove("hidden");
   }
 }
-function detenerEscaneoDni(){
+// Antes esto no esperaba a que la cámara terminara de cerrarse
+// (html5QrCodeDni.stop() sin await) antes de dejar todo en null — si se
+// volvía a abrir la cámara muy rápido después (reintentar un escaneo),
+// algunos navegadores dejaban la cámara "abierta" pero sin imagen porque
+// la anterior todavía no había terminado de soltarse. Ahora sí se espera.
+async function detenerEscaneoDni(){
   document.getElementById("conductor-dni-scan-wrap").classList.add("hidden");
   if (html5QrCodeDni){
-    html5QrCodeDni.stop().catch(()=>{});
-    html5QrCodeDni.clear();
+    try{ await html5QrCodeDni.stop(); }catch(e){}
+    try{ html5QrCodeDni.clear(); }catch(e){}
     html5QrCodeDni = null;
   }
 }
 let dniEscaneoBusy = false;
-function onCodigoBarraDniDetectado(decodedText){
+async function onCodigoBarraDniDetectado(decodedText){
   if (dniEscaneoBusy) return;
   const match = (decodedText || "").match(/\d{8}/);
   if (!match){
@@ -1625,10 +1631,19 @@ function onCodigoBarraDniDetectado(decodedText){
     return;
   }
   dniEscaneoBusy = true;
-  detenerEscaneoDni();
+  await detenerEscaneoDni();
   document.getElementById("conductor-dni-wrap").classList.remove("hidden");
   document.getElementById("dni-input").value = match[0];
-  verificarDniConductor().finally(() => { dniEscaneoBusy = false; });
+  // Si el DNI que se sacó del código no coincide con ningún conductor, se
+  // muestra también el texto crudo que trae el código — el DNI peruano a
+  // veces trae otros números (fechas, etc.) antes del DNI real, y si el
+  // heurístico agarra el número equivocado, esto ayuda a verlo y ajustarlo.
+  await verificarDniConductor();
+  const errorEl = document.getElementById("dni-error");
+  if (!errorEl.classList.contains("hidden")){
+    errorEl.textContent += " (Código leído: " + decodedText + ")";
+  }
+  dniEscaneoBusy = false;
 }
 
 async function verificarDniConductor(){
