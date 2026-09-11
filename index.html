@@ -83,12 +83,26 @@
     #app:has(#screen-logistica-registrar:not(.hidden)){
       max-width: 98vw;
     }
-    #screen-logistica-programar .prog-form,
     #screen-logistica-registrar .prog-form{
       max-width: 480px;
       margin-left: auto;
       margin-right: auto;
       width: 100%;
+    }
+    /* Programar usa TODO el ancho: el formulario de agregar pasa a ser una
+       grilla de varias columnas en vez de un solo bloque angosto — cada
+       campo cae en su columna, y "Días de la semana" + el botón de agregar
+       ocupan la fila completa. */
+    #screen-logistica-programar .prog-form{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      align-items:start;
+      column-gap:14px;
+    }
+    #screen-logistica-programar .prog-form > .row2{ grid-column: span 2; }
+    #screen-logistica-programar .prog-form > .prog-form-full,
+    #screen-logistica-programar .prog-form > #prog-btn-agregar{
+      grid-column: 1 / -1;
     }
   }
   html, body{ overflow-x:hidden; }
@@ -334,11 +348,16 @@
 
   .prog-table-wrap{ overflow-x:auto; border-radius:var(--radius-sm); border:1px solid var(--line); }
   .prog-table{ border-collapse:collapse; width:100%; font-size:12.5px; min-width:820px; }
-  .prog-table th, .prog-table td{ border:1px solid var(--line); padding:6px; text-align:left; white-space:nowrap; }
+  .prog-table th, .prog-table td{ border:1px solid var(--line); padding:6px 5px; text-align:left; white-space:nowrap; }
   .prog-table th{ background:var(--purple-soft); color:var(--purple); font-family:"Space Grotesk"; font-size:11px; }
   .prog-table tbody tr:hover{ background:var(--bg); }
-  .prog-table td.day-on{ background:#FFE066; }
-  .prog-table td.day-off{ background:#fff; }
+  .prog-table td.dia-celda{ text-align:center; padding:5px 2px; }
+  .dia-circulo{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; border-radius:50%; font-size:10px; font-weight:700;
+    background:var(--bg); color:var(--ink-dim); border:1px solid var(--line);
+  }
+  .dia-circulo.on{ background:#FFE066; color:#5c4a00; border-color:#E0B800; }
   .prog-table .rm-btn{ color:var(--alert); font-weight:700; cursor:pointer; background:none; border:none; font-family:inherit; font-size:14px; padding:2px 4px; }
 
   .prog-week-label{ font-family:"Space Grotesk"; font-weight:700; font-size:14px; color:var(--purple); }
@@ -949,7 +968,7 @@
         <label class="hint">Tarifa Total (se guarda esta)</label>
         <input type="text" id="prog-tarifa-total" readonly style="background:var(--purple-soft); font-weight:700;">
       </div>
-      <div>
+      <div class="prog-form-full">
         <label class="hint">Días de la semana</label>
         <div class="prog-days" id="prog-days">
           <button type="button" class="prog-day" data-dia="L" onclick="toggleDiaForm(this)">L</button>
@@ -2455,7 +2474,7 @@ function renderTablaProgramacion(){
     <tr style="${f.yaGuardada ? "background:var(--purple-soft);" : ""}">
       <td>${f.proveedor}</td><td>${f.conductor}</td><td>${f.placa}</td><td>${f.viaje}</td><td>${f.capacidad}</td>
       <td>${f.ruta}</td><td>${f.operacion}</td><td>${f.tarifa}</td><td>${f.clasificacion}</td>
-      ${DIAS_PROG.map(d => `<td class="${f.dias[d.key] ? "day-on" : "day-off"}"></td>`).join("")}
+      ${DIAS_PROG.map(d => `<td class="dia-celda"><span class="dia-circulo${f.dias[d.key] ? " on" : ""}">${d.label[0]}</span></td>`).join("")}
       <td style="white-space:nowrap;">
         <button class="rm-btn" style="color:var(--purple);" onclick="editarFilaProgramacion(${i})" title="Editar">✎</button>
         <button class="rm-btn" onclick="quitarFilaProgramacion(${i})" title="Quitar">✕</button>
