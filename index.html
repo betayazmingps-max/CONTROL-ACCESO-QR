@@ -1146,6 +1146,28 @@ const DEMO_PIURA = {
 };
 
 let basePiuraCache = null;
+// Apps Script responde a través de una redirección a una URL "echo" de
+// Google (script.googleusercontent.com) que a veces falla de forma
+// pasajera (404/500 intermitente, ajeno a nuestro código) — se reintenta
+// una vez antes de darse por vencido, para que un fallo suelto de Google
+// no tumbe TODA la Base Piura (antes, si UNA de las 5 hojas fallaba, el
+// Promise.all descartaba las 5).
+async function fetchConReintento_(url, intentos){
+  intentos = intentos || 2;
+  let ultimoError;
+  for (let i = 0; i < intentos; i++){
+    try{
+      const res = await fetch(url);
+      if (res.ok) return res;
+      ultimoError = new Error("HTTP " + res.status);
+    }catch(e){
+      ultimoError = e;
+    }
+    if (i < intentos - 1) await new Promise(r => setTimeout(r, 600));
+  }
+  throw ultimoError;
+}
+
 async function cargarBasePiura(){
   if (piuraEnDemo()){
     basePiuraCache = DEMO_PIURA;
@@ -1155,7 +1177,7 @@ async function cargarBasePiura(){
   try{
     const hojas = ["PROVEEDORES", "CONDUCTORES", "UNIDADES", "RUTAS ESTABLECIDAS", "Programacion"];
     const [pText, cText, uText, rText, prText] = await Promise.all(
-      hojas.map(h => fetch(getPiuraUrl() + "?hoja=" + encodeURIComponent(h)).then(r => r.text()))
+      hojas.map(h => fetchConReintento_(getPiuraUrl() + "?hoja=" + encodeURIComponent(h)).then(r => r.text()))
     );
     basePiuraCache = {
       proveedores: parseCSVObjetos(pText),
@@ -1247,7 +1269,7 @@ async function cargarRegistroAccesoCache(){
   try{
     const hojas = ["PLANTA", "FUNDO", "PRODUCCION"];
     const [pText, fText, prText] = await Promise.all(
-      hojas.map(h => fetch(getRegistroUrl() + "?hoja=" + encodeURIComponent(h)).then(r => r.text()))
+      hojas.map(h => fetchConReintento_(getRegistroUrl() + "?hoja=" + encodeURIComponent(h)).then(r => r.text()))
     );
     registroAccesoCache = {
       planta: parseCSVObjetos(pText),
@@ -2732,7 +2754,7 @@ function poblarSelectsProveedorRegistrar(){
 async function refrescarBasePiuraTrasGuardar(claveCache, nombreHoja){
   if (basePiuraCache && claveCache && nombreHoja){
     try{
-      const texto = await fetch(getPiuraUrl() + "?hoja=" + encodeURIComponent(nombreHoja)).then(r => r.text());
+      const texto = await fetchConReintento_(getPiuraUrl() + "?hoja=" + encodeURIComponent(nombreHoja)).then(r => r.text());
       basePiuraCache[claveCache] = parseCSVObjetos(texto);
       construirCachesDocumentacion();
     }catch(e){
