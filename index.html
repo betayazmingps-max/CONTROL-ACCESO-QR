@@ -53,6 +53,28 @@
 
   #app{ max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--bg); }
 
+  /* Pantallas grandes (laptop/tablet): la tarjeta de 480px se queda chica y
+     perdida en medio de espacio vacío — se muestra como una tarjeta flotante
+     centrada, con más aire, en vez de estirarse (los formularios están
+     pensados para ancho angosto). */
+  @media (min-width: 720px){
+    html, body{ background:var(--bg-2); }
+    #app{
+      max-width:520px;
+      min-height:calc(100vh - 48px);
+      margin:24px auto;
+      border-radius:22px;
+      box-shadow:0 18px 50px rgba(30,17,71,0.18);
+      overflow:hidden;
+    }
+  }
+  /* Celulares muy angostos: reducir un poco el padding para que nada se corte. */
+  @media (max-width: 360px){
+    .topbar{ padding:14px 14px; }
+    .qr-card{ padding:20px 16px; }
+  }
+  html, body{ overflow-x:hidden; }
+
   .topbar{
     display:flex; align-items:center; gap:10px;
     padding:18px 20px;
@@ -217,12 +239,15 @@
   .log-item .lp{ font-weight:600; color:var(--ink); }
   .log-item .lt.entrada{ color:#4d8a1f; font-weight:600; }
   .log-item .lt.salida{ color:var(--purple); font-weight:600; }
+  .log-item .lt.carga{ color:#4d8a1f; font-weight:600; }
+  .log-item .lt.descarga{ color:var(--purple); font-weight:600; }
 
   .btn{
     background:var(--lime); color:#1c3a0b; border:none; border-radius:999px;
     padding:15px 20px; font-weight:700; font-size:15px; cursor:pointer; font-family:inherit;
   }
   .btn:active{ filter:brightness(0.94); }
+  .btn:disabled{ opacity:0.55; cursor:not-allowed; filter:none; }
   .btn.ghost{ background:var(--purple-soft); border:1px solid var(--line); color:var(--purple); }
   .btn.block{ width:100%; }
 
@@ -416,6 +441,17 @@
         <div id="dni-error" class="dni-error hidden"></div>
         <div id="dni-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
         <button class="btn block" style="margin-top:16px;" onclick="verificarDniConductor()">Ver mi viaje</button>
+        <button class="btn ghost block" style="margin-top:10px;" onclick="iniciarEscaneoDni()">📷 Escanear código de barras del DNI</button>
+      </div>
+    </div>
+
+    <div id="conductor-dni-scan-wrap" class="hidden">
+      <div class="qr-card" style="padding:18px;">
+        <div style="font-weight:700; font-size:15px; text-align:center; margin-bottom:8px;">Escanea el código de barras del DNI</div>
+        <p class="hint" style="text-align:center; margin:0 0 10px;">Apunta la cámara al código de barras que está atrás de tu DNI.</p>
+        <div id="conductor-dni-reader" style="border-radius:12px; overflow:hidden;"></div>
+        <div id="dni-scan-error" class="dni-error hidden" style="margin-top:10px;"></div>
+        <button class="btn ghost block" style="margin-top:12px;" onclick="detenerEscaneoDni()">Cancelar</button>
       </div>
     </div>
 
@@ -451,10 +487,13 @@
       <div class="icon-chip" style="width:52px; height:52px; margin-bottom:6px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
       </div>
-      <div style="font-weight:700; font-size:16px; text-align:center;">Ingresa el PIN</div>
-      <input type="text" inputmode="numeric" id="pin-input" placeholder="••••" style="text-align:center; letter-spacing:8px; font-size:22px; margin-top:14px;" maxlength="8" onkeydown="if(event.key==='Enter') verificarPinGarita();">
-      <div id="pin-error" class="hidden" style="color:var(--alert); font-size:13px; margin-top:8px;">PIN incorrecto, intenta de nuevo.</div>
-      <button class="btn block" style="margin-top:16px;" onclick="verificarPinGarita()">Ingresar</button>
+      <div style="font-weight:700; font-size:16px; text-align:center;" id="login-titulo">Inicia sesión</div>
+      <input type="password" inputmode="numeric" id="pin-input" placeholder="PIN" maxlength="8" class="hidden" style="text-align:center; font-size:20px; letter-spacing:4px; margin-top:14px;" onkeydown="if(event.key==='Enter') verificarLogin();">
+      <input type="text" id="login-usuario" placeholder="Usuario" autocomplete="off" style="text-align:center; font-size:16px; margin-top:14px;" onkeydown="if(event.key==='Enter') document.getElementById('login-contrasena').focus();">
+      <input type="password" id="login-contrasena" placeholder="Contraseña" style="text-align:center; font-size:16px; margin-top:10px;" onkeydown="if(event.key==='Enter') verificarLogin();">
+      <div id="pin-error" class="hidden" style="color:var(--alert); font-size:13px; margin-top:8px;">Usuario o contraseña incorrectos.</div>
+      <div id="login-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
+      <button class="btn block" style="margin-top:16px;" onclick="verificarLogin()">Ingresar</button>
     </div>
   </section>
 
@@ -463,6 +502,18 @@
     <div class="topbar" style="margin:-22px -20px 4px;">
       <button class="back" onclick="pararScanner(); goTo('role');">←</button>
       <div class="title">Garita</div>
+    </div>
+
+    <div class="field" style="margin-bottom:10px;">
+      <label>Sede de esta Garita</label>
+      <div class="tipo-toggle" id="garita-sede-toggle">
+        <button type="button" class="active" onclick="seleccionarSedeGarita('planta')" id="garita-sede-planta">Planta Recria</button>
+        <button type="button" onclick="seleccionarSedeGarita('fundo')" id="garita-sede-fundo">Fundo (destino)</button>
+      </div>
+      <select id="garita-sede-destino" class="hidden" style="margin-top:8px;" onchange="onCambioSedeDestinoGarita()">
+        <option value="">— Selecciona destino —</option>
+      </select>
+      <div class="hint" id="garita-sede-hint" style="margin-top:4px;"></div>
     </div>
 
     <div class="field" style="margin-bottom:0;">
@@ -493,11 +544,15 @@
     </div>
 
     <div class="field" style="margin-bottom:0;">
-      <label>Selecciona antes de escanear</label>
-      <div class="tipo-toggle" id="produccion-tipo-toggle">
-        <button type="button" class="active" onclick="seleccionarTipo('produccion','Entrada')" id="produccion-tipo-entrada">Ingreso</button>
-        <button type="button" onclick="seleccionarTipo('produccion','Salida')" id="produccion-tipo-salida">Salida</button>
+      <label>Sede de esta Producción</label>
+      <div class="tipo-toggle" id="produccion-sede-toggle">
+        <button type="button" class="active" onclick="seleccionarSedeProduccion('planta')" id="produccion-sede-planta">Planta (Carga)</button>
+        <button type="button" onclick="seleccionarSedeProduccion('fundo')" id="produccion-sede-fundo">Fundo (Descarga)</button>
       </div>
+      <select id="produccion-sede-destino" class="hidden" style="margin-top:8px;" onchange="onCambioSedeDestinoProduccion()">
+        <option value="">— Selecciona destino —</option>
+      </select>
+      <div class="hint" id="produccion-sede-hint" style="margin-top:4px;"></div>
     </div>
 
     <div class="scan-wrap" id="scan-wrap-produccion">
@@ -591,8 +646,8 @@
 
     <div id="registrar-form-proveedor" class="prog-form">
       <div class="row2">
-        <div><label class="hint">RUC</label><input type="text" id="reg-p-ruc" placeholder="10708507046"></div>
-        <div><label class="hint">Proveedor (razón social)</label><input type="text" id="reg-p-nombre" placeholder="Nombre del proveedor"></div>
+        <div><label class="hint">RUC</label><input type="text" id="reg-p-ruc" placeholder="10708507046" oninput="actualizarVisibilidadBuscadorRegistro()"></div>
+        <div><label class="hint">Proveedor (razón social)</label><input type="text" id="reg-p-nombre" placeholder="Nombre del proveedor" oninput="actualizarVisibilidadBuscadorRegistro()"></div>
       </div>
       <div class="row2">
         <div>
@@ -615,7 +670,7 @@
         <div>
           <label class="hint">DNI</label>
           <div style="display:flex; gap:6px;">
-            <input type="text" id="reg-c-dni" inputmode="numeric" placeholder="12345678" style="flex:1;">
+            <input type="text" id="reg-c-dni" inputmode="numeric" placeholder="12345678" style="flex:1;" oninput="actualizarVisibilidadBuscadorRegistro()">
             <button type="button" class="btn ghost" style="padding:0 14px; white-space:nowrap;" onclick="buscarDniLicenciaConductor()">🔎 DNI/Licencia</button>
           </div>
         </div>
@@ -651,7 +706,14 @@
         </div>
       </div>
       <div class="row2">
-        <div><label class="hint">Tipo de SCTR</label><input type="text" id="reg-c-tiposctr" placeholder="Salud / Pensión"></div>
+        <div><label class="hint">Tipo de SCTR</label>
+          <select id="reg-c-tiposctr">
+            <option value="">— Selecciona —</option>
+            <option value="Salud">Salud</option>
+            <option value="Pensión">Pensión</option>
+            <option value="Salud y Pensión">Salud y Pensión</option>
+          </select>
+        </div>
         <div><label class="hint">Aseguradora SCTR</label><input type="text" id="reg-c-aseguradora-sctr" placeholder="Rímac, Pacífico, etc."></div>
       </div>
       <div class="row2">
@@ -676,7 +738,7 @@
       <div id="reg-c-baja-wrap" class="hidden" style="border-top:1px dashed var(--line); padding-top:12px; margin-top:4px;">
         <label class="hint" style="color:var(--alert);">Este conductor ya no trabaja aquí</label>
         <input type="text" id="reg-c-reemplazo" placeholder="Nombre del conductor de reemplazo" style="margin-top:6px;">
-        <button class="btn ghost block" style="margin-top:8px; color:var(--alert); border-color:var(--alert);" onclick="darDeBajaConductor()">Marcar como inactivo y registrar reemplazo</button>
+        <button class="btn ghost block" id="reg-c-btn-baja" style="margin-top:8px; color:var(--alert); border-color:var(--alert);" onclick="darDeBajaConductor()">Marcar como inactivo y registrar reemplazo</button>
       </div>
     </div>
 
@@ -685,7 +747,7 @@
         <div>
           <label class="hint">Placa</label>
           <div style="display:flex; gap:6px;">
-            <input type="text" id="reg-u-placa" placeholder="ABC-123" style="flex:1;">
+            <input type="text" id="reg-u-placa" placeholder="ABC-123" style="flex:1;" oninput="actualizarVisibilidadBuscadorRegistro()">
             <button type="button" class="btn ghost" style="padding:0 14px; white-space:nowrap;" onclick="buscarSoatRtvUnidad()">🔎 SOAT/RTV</button>
           </div>
         </div>
@@ -713,13 +775,10 @@
             <option value="10 PH">10 PH</option>
             <option value="12 PH">12 PH</option>
             <option value="14 PH">14 PH</option>
+            <option value="16 PH">16 PH</option>
           </select>
         </div>
-        <div><label class="hint">N° Pasajeros</label><input type="number" id="reg-u-pasajeros"></div>
-      </div>
-      <div class="row2">
         <div><label class="hint">Año de Fabricación</label><input type="number" id="reg-u-anio" placeholder="2015"></div>
-        <div></div>
       </div>
       <div class="row2">
         <div>
@@ -742,7 +801,7 @@
         </div>
       </div>
       <div>
-        <label class="hint">¿Tiene Tarjeta de Circulación (T.C.)?</label>
+        <label class="hint">¿Tiene Tarjeta de Mercancía?</label>
         <div class="tipo-toggle">
           <button type="button" id="reg-u-tc-si" onclick="seleccionarTieneTC(true)">Sí</button>
           <button type="button" class="active" id="reg-u-tc-no" onclick="seleccionarTieneTC(false)">No</button>
@@ -750,7 +809,7 @@
       </div>
       <div class="row2 hidden" id="reg-u-tc-wrap">
         <div>
-          <label class="hint">Fecha Vencimiento T.C.</label>
+          <label class="hint">Fecha Vencimiento Tarjeta de Mercancía</label>
           <input type="date" id="reg-u-fecha-tc" oninput="previsualizarAlerta('reg-u-fecha-tc','reg-u-alerta-tc')">
         </div>
         <div>
@@ -790,11 +849,23 @@
 
     <div class="field">
       <label for="prog-fecha">Fecha de referencia de la semana</label>
-      <input type="date" id="prog-fecha" onchange="renderTablaProgramacion()">
+      <input type="date" id="prog-fecha" onchange="onCambioFechaProgramacion()">
     </div>
     <div class="prog-week-label" id="prog-week-label"></div>
 
+    <p class="hint" style="margin:10px 0 4px;"><span style="display:inline-block; width:10px; height:10px; background:var(--purple-soft); border:1px solid var(--line); vertical-align:middle; margin-right:5px;"></span>Ya guardado esta semana — lo puedes editar (✎) o quitar (✕).</p>
+    <div class="prog-table-wrap">
+      <table class="prog-table" id="prog-table"></table>
+    </div>
+
     <div class="prog-form">
+      <div>
+        <label class="hint">Clasificación</label>
+        <select id="prog-clasificacion" onchange="onCambioClasificacionProg()">
+          <option value="Normal">Normal</option>
+          <option value="Adicional">Adicional</option>
+        </select>
+      </div>
       <div>
         <label class="hint">Proveedor</label>
         <select id="prog-proveedor" onchange="onCambioProveedorLogistica()"></select>
@@ -806,26 +877,41 @@
         </div>
         <div>
           <label class="hint">Placa</label>
-          <select id="prog-placa"></select>
+          <select id="prog-placa" onchange="onCambioPlacaProgramacion()"></select>
         </div>
       </div>
-      <div class="row2">
-        <div>
-          <label class="hint">Capacidad</label>
-          <select id="prog-ph" onchange="recalcularTarifaLogistica()">
-            <option value="10 PH">10 PH</option>
-            <option value="12 PH">12 PH</option>
-            <option value="14 PH">14 PH</option>
-          </select>
+      <div>
+        <label class="hint">Capacidad</label>
+        <div class="tipo-toggle">
+          <button type="button" id="prog-cap-tipo-real" class="active" onclick="seleccionarTipoCapacidadProg('real')">Real (según base)</button>
+          <button type="button" id="prog-cap-tipo-contrato" onclick="seleccionarTipoCapacidadProg('contrato')">Contrato</button>
         </div>
-        <div>
-          <label class="hint">Cantidad de Viajes</label>
-          <input type="number" id="prog-cant-viajes" min="1" step="1" placeholder="1">
-        </div>
+        <select id="prog-ph" onchange="recalcularTarifaLogistica()" disabled style="margin-top:8px;">
+          <option value="10 PH">10 PH</option>
+          <option value="12 PH">12 PH</option>
+          <option value="14 PH">14 PH</option>
+          <option value="16 PH">16 PH</option>
+        </select>
+        <div class="hint" id="prog-cap-real-hint" style="margin-top:4px;"></div>
+      </div>
+      <div>
+        <label class="hint">Cantidad de Viajes</label>
+        <input type="number" id="prog-cant-viajes" min="1" step="1" placeholder="1" oninput="recalcularTarifaLogistica()">
+        <div class="hint" id="prog-adicional-total-hint" style="margin-top:4px;"></div>
       </div>
       <div>
         <label class="hint">Ruta</label>
         <select id="prog-ruta" onchange="recalcularTarifaLogistica()"></select>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="hint">Origen</label>
+          <input type="text" id="prog-origen" readonly style="background:var(--purple-soft);">
+        </div>
+        <div>
+          <label class="hint">Destino</label>
+          <input type="text" id="prog-destino" readonly style="background:var(--purple-soft);">
+        </div>
       </div>
       <div>
         <label class="hint">Operación</label>
@@ -834,23 +920,14 @@
           <option value="TRASLADO DE JABAS">TRASLADO DE JABAS</option>
         </select>
       </div>
-      <div class="row2">
-        <div>
-          <label class="hint">Tarifa</label>
-          <input type="text" id="prog-tarifa" placeholder="Se calcula según ruta y tamaño" oninput="recalcularTarifaTotal()">
-        </div>
-        <div>
-          <label class="hint">Descuento</label>
-          <input type="text" id="prog-descuento" placeholder="0" oninput="recalcularTarifaTotal()">
-        </div>
+      <div>
+        <label class="hint">Tarifa</label>
+        <input type="text" id="prog-tarifa" placeholder="Se calcula según ruta y tamaño" oninput="recalcularTarifaTotal()">
       </div>
+      <input type="hidden" id="prog-descuento" value="0">
       <div>
         <label class="hint">Tarifa Total (se guarda esta)</label>
         <input type="text" id="prog-tarifa-total" readonly style="background:var(--purple-soft); font-weight:700;">
-      </div>
-      <div>
-        <label class="hint">Clasificación</label>
-        <input type="text" id="prog-clasificacion" placeholder="Normal / Adicional">
       </div>
       <div>
         <label class="hint">Días de la semana</label>
@@ -864,11 +941,7 @@
           <button type="button" class="prog-day" data-dia="D" onclick="toggleDiaForm(this)">D</button>
         </div>
       </div>
-      <button class="btn block" onclick="agregarFilaProgramacion()">+ Agregar a la programación</button>
-    </div>
-
-    <div class="prog-table-wrap">
-      <table class="prog-table" id="prog-table"></table>
+      <button class="btn block" id="prog-btn-agregar" onclick="agregarFilaProgramacion()">+ Agregar a la programación</button>
     </div>
 
     <button class="btn block" style="margin-top:6px;" onclick="guardarProgramacion()">Guardar programación de la semana</button>
@@ -896,10 +969,6 @@
         <label for="piura-url">URL del Apps Script — Base Piura (Proveedores/Conductores/Unidades/Rutas, documentación SOAT-RTV-SCTR y Programación)</label>
         <input type="text" id="piura-url" placeholder="https://script.google.com/macros/s/.../exec">
       </div>
-      <div class="field">
-        <label for="pin-nuevo">PIN de acceso a Garita</label>
-        <input type="text" inputmode="numeric" id="pin-nuevo" placeholder="1234" maxlength="8">
-      </div>
       <button class="btn block" onclick="guardarConfig()">Guardar</button>
       <button class="btn ghost block" style="margin-top:10px;" onclick="usarDemo()">Usar modo demo (datos de prueba)</button>
       <p class="hint" style="margin-top:14px;">
@@ -921,10 +990,13 @@
    POST {url} body: {action:"guardarProgramacion", fecha, filas:[...]}
         -> guarda la programación semanal en la pestaña "Programacion".
 
-   Registro de accesos — Apps Script propio "Registro Accesos QR":
-   POST {url} body: {action:"marcarAcceso", placa, zona, conductor, tipo, origen, ...}
+   Registro de accesos — Apps Script propio "Registro Accesos QR" (v3, 3
+   hojas por estación — PLANTA / FUNDO / PRODUCCION):
+   POST {url} body: {action:"marcarAcceso", placa, tipo, origen, ...}
+        origen: "GaritaPlanta" | "GaritaFundo" | "ProduccionCarga" | "ProduccionDescarga"
         -> {tipo, hora, viaje}
-   GET  {url}?action=verificarGarita&placa=...&fecha=... -> {existe, viaje}
+   GET  {url}?hoja=PLANTA|FUNDO|PRODUCCION -> CSV de esa hoja (para saber
+        qué viajes ya tienen sus 6 marcas completas).
    ========================================================= */
 
 const LS_KEYS = { registroUrl: "acc_registro_url", piuraUrl: "acc_piura_url", registros: "acc_registros_demo", programacion: "acc_programacion_demo" };
@@ -1008,8 +1080,8 @@ const DEMO_PIURA = {
     { DNI:"70870651", Conductor:"SAAVEDRA MONTERO ERICSON MARTIN", RUC:"10708706511", PROVEEDOR:"SAAVEDRA MONTERO ERICSON MARTIN", ZONA:"PIURA", "Fecha de Revalidación":"03/06/2029", "ALERETA LIC.":"VIGENTE", "Aseguradora SCTR":"", "Tipo de SCTR":"", "Fecha Vencimiento SCTR":"", "ALERTA SCTR":"FALTA" },
   ],
   unidades: [
-    { Placa:"C9K825", "Tipo de Unidad":"CAMION", RUC:"10708507046", Proveedor:"OROZCO CUEVA ABRAHAM JUNIORS", "N° Pasajeros":"4", ZONA:"PIURA", "Fecha Vencimiento SOAT":"18/09/2026", "Alerta SOAT":"POR VENCER", "Fecha Vencimiento RTV":"04/08/2027", "Alerta RTV":"VIGENTE", "¿Tiene T.C.?":"NO", "Cuenta con Poliza RC":"NO", "Estado de la Unidad":"PROPIA" },
-    { Placa:"S1O856", "Tipo de Unidad":"CAMION", RUC:"10708706511", Proveedor:"SAAVEDRA MONTERO ERICSON MARTIN", "N° Pasajeros":"2", ZONA:"PIURA", "Fecha Vencimiento SOAT":"29/06/2027", "Alerta SOAT":"VIGENTE", "Fecha Vencimiento RTV":"01/09/2027", "Alerta RTV":"VIGENTE", "¿Tiene T.C.?":"NO", "Cuenta con Poliza RC":"NO", "Estado de la Unidad":"ARRENDADA" },
+    { Placa:"C9K825", "Tipo de Unidad":"CAMION", RUC:"10708507046", Proveedor:"OROZCO CUEVA ABRAHAM JUNIORS", "Capacidad (PH)":"10 PH", ZONA:"PIURA", "Fecha Vencimiento SOAT":"18/09/2026", "Alerta SOAT":"POR VENCER", "Fecha Vencimiento RTV":"04/08/2027", "Alerta RTV":"VIGENTE", "¿Tiene T.C.?":"NO", "Cuenta con Poliza RC":"NO", "Estado de la Unidad":"PROPIA" },
+    { Placa:"S1O856", "Tipo de Unidad":"CAMION", RUC:"10708706511", Proveedor:"SAAVEDRA MONTERO ERICSON MARTIN", "Capacidad (PH)":"12 PH", ZONA:"PIURA", "Fecha Vencimiento SOAT":"29/06/2027", "Alerta SOAT":"VIGENTE", "Fecha Vencimiento RTV":"01/09/2027", "Alerta RTV":"VIGENTE", "¿Tiene T.C.?":"NO", "Cuenta con Poliza RC":"NO", "Estado de la Unidad":"ARRENDADA" },
   ],
   rutas: [
     { RUTA:"ENCANTADA -> PLANTA RECRIA", "KM IDA VUELTA":"25", "CANTIDAD DE VUELTAS":"4", "TOTAL DE KILOMETROS":"100", "10 PH":"520", "12 PH":"570", "14 PH":"630" },
@@ -1114,28 +1186,85 @@ async function marcarAcceso(placa, zona, conductor, tipo, origen, extra){
   return { placa, zona, conductor, tipo: data.tipo || tipo, hora: data.hora || horaISO, origen, ...extra, horaCarga: horaISO, viaje: data.viaje || viaje };
 }
 
-// Verifica si Garita ya validó (Entrada) esta Placa + N° de Viaje hoy —
-// requisito obligatorio antes de que Producción pueda pedatear ese viaje.
-async function verificarPedateoGarita(placa, viaje){
-  const hoy = new Date().toISOString().slice(0, 10);
-  const normPlaca = normalizarPlaca(placa);
-  const viajeTxt = (viaje || "1").toString().trim();
+// Un viaje pasa por 6 marcas antes de darse por terminado: Entrada/Salida en
+// Garita Planta, Entrada/Salida en Garita Fundo, y Carga/Descarga en
+// Producción. Se leen las 3 hojas del Registro (PLANTA/FUNDO/PRODUCCION) —
+// en demo se usa el mismo registro plano filtrando por origen/tipo.
+let registroAccesoCache = null;
+async function cargarRegistroAccesoCache(){
   if (registroEnDemo()){
-    const existeEntrada = getRegistrosDemo().some(r =>
-      normalizarPlaca(r.placa) === normPlaca && (r.viaje || "1").toString().trim() === viajeTxt &&
-      r.origen === "Garita" && r.tipo === "Entrada" && (r.hora || "").slice(0, 10) === hoy
-    );
-    return { existe: existeEntrada, viaje: viajeTxt };
+    registroAccesoCache = { demo: getRegistrosDemo() };
+    return registroAccesoCache;
   }
   try{
-    const url = getRegistroUrl() + "?action=verificarGarita&placa=" + encodeURIComponent(placa) + "&viaje=" + encodeURIComponent(viajeTxt) + "&fecha=" + hoy;
-    const res = await fetch(url);
-    const data = await res.json();
-    return { existe: !!(data && data.existe), viaje: viajeTxt };
+    const hojas = ["PLANTA", "FUNDO", "PRODUCCION"];
+    const [pText, fText, prText] = await Promise.all(
+      hojas.map(h => fetch(getRegistroUrl() + "?hoja=" + encodeURIComponent(h)).then(r => r.text()))
+    );
+    registroAccesoCache = {
+      planta: parseCSVObjetos(pText),
+      fundo: parseCSVObjetos(fText),
+      produccion: parseCSVObjetos(prText)
+    };
   }catch(e){
     console.error(e);
-    return { existe:false, viaje: viajeTxt }; // si no se puede verificar, no se arriesga a dejar pasar
+    registroAccesoCache = { planta: [], fundo: [], produccion: [] };
   }
+  return registroAccesoCache;
+}
+
+function viajeEstaCompleto_(placa, viaje, fechaISO){
+  if (!registroAccesoCache) return false;
+  const normPlaca = normalizarPlaca(placa);
+  const viajeTxt = (viaje || "1").toString().trim();
+
+  if (registroAccesoCache.demo){
+    const regs = registroAccesoCache.demo;
+    const marco = (origen, tipo) => regs.some(r =>
+      normalizarPlaca(r.placa) === normPlaca && (r.viaje || "1").toString().trim() === viajeTxt &&
+      r.origen === origen && r.tipo === tipo && (r.hora || "").slice(0, 10) === fechaISO
+    );
+    return marco("GaritaPlanta", "Entrada") && marco("GaritaPlanta", "Salida") &&
+           marco("GaritaFundo", "Entrada") && marco("GaritaFundo", "Salida") &&
+           marco("ProduccionCarga", "Carga") && marco("ProduccionDescarga", "Descarga");
+  }
+
+  const hoy = parseFechaProgramacion(fechaISO) || new Date(fechaISO + "T00:00:00");
+  const mismaFecha = f => { const d = parseFechaProgramacion(f); return d && d.toDateString() === hoy.toDateString(); };
+  const buscar = lista => lista.find(row =>
+    normalizarPlaca(row.Placa) === normPlaca && (row.Viaje || "1").toString().trim() === viajeTxt && mismaFecha(row.Fecha)
+  );
+  const planta = buscar(registroAccesoCache.planta);
+  const fundo = buscar(registroAccesoCache.fundo);
+  const produccion = buscar(registroAccesoCache.produccion);
+  return !!(planta && planta.Entrada && planta.Salida &&
+    fundo && fundo.Entrada && fundo.Salida &&
+    produccion && produccion["Hora de Carga"] && produccion["Hora de Descarga"]);
+}
+
+// Producción no puede pedatear (ni Carga en Planta ni Descarga en Fundo) si
+// Garita todavía no marcó Entrada en ESA MISMA sede para este viaje hoy.
+// Requiere que cargarRegistroAccesoCache() ya se haya llamado antes.
+function garitaYaEntroEn_(sedeTipo, placa, viaje, fechaISO){
+  if (!registroAccesoCache) return false;
+  const normPlaca = normalizarPlaca(placa);
+  const viajeTxt = (viaje || "1").toString().trim();
+
+  if (registroAccesoCache.demo){
+    const origen = sedeTipo === "planta" ? "GaritaPlanta" : "GaritaFundo";
+    return registroAccesoCache.demo.some(r =>
+      normalizarPlaca(r.placa) === normPlaca && (r.viaje || "1").toString().trim() === viajeTxt &&
+      r.origen === origen && r.tipo === "Entrada" && (r.hora || "").slice(0, 10) === fechaISO
+    );
+  }
+
+  const lista = sedeTipo === "planta" ? registroAccesoCache.planta : registroAccesoCache.fundo;
+  const hoy = parseFechaProgramacion(fechaISO) || new Date(fechaISO + "T00:00:00");
+  const mismaFecha = f => { const d = parseFechaProgramacion(f); return d && d.toDateString() === hoy.toDateString(); };
+  const fila = (lista || []).find(row =>
+    normalizarPlaca(row.Placa) === normPlaca && (row.Viaje || "1").toString().trim() === viajeTxt && mismaFecha(row.Fecha)
+  );
+  return !!(fila && fila.Entrada);
 }
 
 function formatHora(iso){
@@ -1146,26 +1275,76 @@ function formatHora(iso){
 /* =========================================================
    NAVIGATION
    ========================================================= */
-const DEFAULT_GARITA_PIN = "1234";
-function getGaritaPin(){ return localStorage.getItem("acc_garita_pin") || DEFAULT_GARITA_PIN; }
+// Usuarios de acceso: viven en la hoja "USUARIOS" de Base Piura, nunca en
+// este código. La app solo manda usuario+contraseña y el Apps Script
+// contesta sí/no — la lista completa (con contraseñas) nunca sale del
+// servidor, así el repo puede seguir siendo público sin exponer nada.
+const DEFAULT_GARITA_PIN = "1234"; // Garita no usa usuario, es un PIN fijo compartido.
+const DEMO_USUARIOS = [{ usuario: "ADMIN", contrasena: "1234", nombre: "Demo", rol: "" }];
+let usuarioActivo = null; // nombre de quien inició sesión (para trazabilidad)
 
 let pinDestino = "garita";
 const PIN_GATE_TITULOS = { garita: "Acceso Garita", produccion: "Acceso Producción", logistica: "Acceso Logística", settings: "Configuración" };
 function abrirPinGarita(destino){
   pinDestino = destino || "garita";
+  const esGarita = pinDestino === "garita";
   document.getElementById("pin-gate-title").textContent = PIN_GATE_TITULOS[pinDestino] || "Acceso";
+  document.getElementById("login-titulo").textContent = esGarita ? "Ingresa el PIN" : "Inicia sesión";
   goTo("garita-pin");
-  const input = document.getElementById("pin-input");
-  input.value = "";
+  document.getElementById("pin-input").classList.toggle("hidden", !esGarita);
+  document.getElementById("login-usuario").classList.toggle("hidden", esGarita);
+  document.getElementById("login-contrasena").classList.toggle("hidden", esGarita);
+  document.getElementById("pin-input").value = "";
+  document.getElementById("login-usuario").value = "";
+  document.getElementById("login-contrasena").value = "";
   document.getElementById("pin-error").classList.add("hidden");
-  setTimeout(() => input.focus(), 50);
+  setTimeout(() => document.getElementById(esGarita ? "pin-input" : "login-usuario").focus(), 50);
 }
-function verificarPinGarita(){
-  const val = document.getElementById("pin-input").value.trim();
-  if (val === getGaritaPin()){
+async function verificarLogin(){
+  const errorEl = document.getElementById("pin-error");
+  const loadingEl = document.getElementById("login-loading");
+  errorEl.classList.add("hidden");
+
+  if (pinDestino === "garita"){
+    const val = document.getElementById("pin-input").value.trim();
+    if (val === DEFAULT_GARITA_PIN){
+      goTo(pinDestino);
+    } else {
+      errorEl.textContent = "PIN incorrecto.";
+      errorEl.classList.remove("hidden");
+    }
+    return;
+  }
+
+  const usuario = document.getElementById("login-usuario").value.trim();
+  const contrasena = document.getElementById("login-contrasena").value;
+  if (!usuario || !contrasena){
+    errorEl.textContent = "Ingresa usuario y contraseña.";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  loadingEl.classList.remove("hidden");
+  let resultado;
+  if (piuraEnDemo()){
+    const u = DEMO_USUARIOS.find(x => x.usuario.toUpperCase() === usuario.toUpperCase() && x.contrasena === contrasena);
+    resultado = u ? { ok: true, nombre: u.nombre, rol: u.rol } : { ok: false, error: "Usuario o contraseña incorrectos." };
+  } else {
+    try{
+      const res = await fetch(getPiuraUrl(), { method: "POST", body: JSON.stringify({ action: "login", usuario, contrasena }) });
+      resultado = await res.json();
+    }catch(e){
+      resultado = { ok: false, error: "No se pudo conectar. Revisa tu conexión." };
+    }
+  }
+  loadingEl.classList.add("hidden");
+
+  if (resultado.ok){
+    usuarioActivo = resultado.nombre || usuario;
     goTo(pinDestino);
   } else {
-    document.getElementById("pin-error").classList.remove("hidden");
+    errorEl.textContent = resultado.error || "Usuario o contraseña incorrectos.";
+    errorEl.classList.remove("hidden");
   }
 }
 function goTo(screen){
@@ -1252,6 +1431,7 @@ function buscarFilaProgramacionHoy(placa, viajeNum){
 }
 
 async function initConductor(){
+  detenerEscaneoDni();
   document.getElementById("conductor-qr-wrap").classList.add("hidden");
   document.getElementById("conductor-viajes-wrap").classList.add("hidden");
   document.getElementById("conductor-dni-wrap").classList.remove("hidden");
@@ -1262,12 +1442,70 @@ async function initConductor(){
 }
 
 function volverDni(){
+  detenerEscaneoDni();
   document.getElementById("conductor-qr-wrap").classList.add("hidden");
   document.getElementById("conductor-viajes-wrap").classList.add("hidden");
   document.getElementById("conductor-dni-wrap").classList.remove("hidden");
   document.getElementById("dni-input").value = "";
   document.getElementById("dni-error").classList.add("hidden");
   setTimeout(() => document.getElementById("dni-input").focus(), 50);
+}
+
+// Escaneo del código de barras del DNI (evita tener que digitarlo). El
+// reverso del DNI peruano trae un código de barras (PDF417 o Code128, según
+// el lote) con el número de DNI. Se reutiliza Html5Qrcode (ya cargado para
+// Garita/Producción) pidiéndole formatos de barras además de QR, y de lo que
+// decodifique se saca la primera racha de 8 dígitos seguidos — es el
+// heurístico más simple que funciona sin importar si el código trae más
+// datos aparte del DNI.
+let html5QrCodeDni = null;
+function iniciarEscaneoDni(){
+  document.getElementById("conductor-dni-wrap").classList.add("hidden");
+  document.getElementById("conductor-dni-scan-wrap").classList.remove("hidden");
+  document.getElementById("dni-scan-error").classList.add("hidden");
+  if (html5QrCodeDni) return;
+  html5QrCodeDni = new Html5Qrcode("conductor-dni-reader", {
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.PDF_417,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.QR_CODE
+    ]
+  });
+  html5QrCodeDni.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 260, height: 140 } },
+    onCodigoBarraDniDetectado,
+    () => {}
+  ).catch(err => {
+    const el = document.getElementById("dni-scan-error");
+    el.textContent = "No se pudo abrir la cámara. Revisa permisos del navegador.";
+    el.classList.remove("hidden");
+  });
+}
+function detenerEscaneoDni(){
+  document.getElementById("conductor-dni-scan-wrap").classList.add("hidden");
+  if (html5QrCodeDni){
+    html5QrCodeDni.stop().catch(()=>{});
+    html5QrCodeDni.clear();
+    html5QrCodeDni = null;
+  }
+}
+let dniEscaneoBusy = false;
+function onCodigoBarraDniDetectado(decodedText){
+  if (dniEscaneoBusy) return;
+  const match = (decodedText || "").match(/\d{8}/);
+  if (!match){
+    const el = document.getElementById("dni-scan-error");
+    el.textContent = "No se reconoció un DNI válido en ese código. Intenta de nuevo o digítalo a mano.";
+    el.classList.remove("hidden");
+    return;
+  }
+  dniEscaneoBusy = true;
+  detenerEscaneoDni();
+  document.getElementById("conductor-dni-wrap").classList.remove("hidden");
+  document.getElementById("dni-input").value = match[0];
+  verificarDniConductor().finally(() => { dniEscaneoBusy = false; });
 }
 
 async function verificarDniConductor(){
@@ -1294,11 +1532,24 @@ async function verificarDniConductor(){
     errorEl.classList.remove("hidden");
     return;
   }
-  if (viajes.length === 1){
-    mostrarQRViaje(viajes[0]);
-  } else {
-    mostrarListaViajes(viajes);
+
+  // Los viajes se hacen en orden: mientras el Viaje 1 no tenga sus 6 marcas
+  // completas (Entrada/Salida Planta, Entrada/Salida Fundo, Carga/Descarga
+  // Producción) su QR sigue siendo el que se muestra; recién cuando se
+  // completa pasa solo al siguiente — nunca se ofrece a elegir de una lista.
+  loadingEl.classList.remove("hidden");
+  await cargarRegistroAccesoCache();
+  loadingEl.classList.add("hidden");
+  const hoyISO = new Date().toISOString().slice(0, 10);
+  const viajesOrdenados = [...viajes].sort((a, b) => (parseInt(a.Viaje, 10) || 0) - (parseInt(b.Viaje, 10) || 0));
+  const siguiente = viajesOrdenados.find(v => !viajeEstaCompleto_(v.Placa, v.Viaje, hoyISO));
+
+  if (!siguiente){
+    errorEl.textContent = "Ya completaste todos tus viajes de hoy.";
+    errorEl.classList.remove("hidden");
+    return;
   }
+  mostrarQRViaje(siguiente);
 }
 
 function mostrarListaViajes(viajes){
@@ -1356,12 +1607,87 @@ function mostrarQRViaje(viaje){
 let html5QrCode = null;
 let scannerBusy = false;
 
+// Sede de esta Garita: "planta" (Planta Recria, por donde pasan TODAS las
+// unidades sin importar destino) o "fundo" (un destino específico — solo
+// debe aceptar unidades programadas hacia ESE destino). Se recuerda entre
+// visitas a la pantalla (normal que un mismo dispositivo/garita sea siempre
+// la misma sede).
+let garitaSede = { tipo: "planta", destino: "" };
+function poblarDestinosGarita_(){
+  const sel = document.getElementById("garita-sede-destino");
+  const anterior = garitaSede.destino;
+  sel.innerHTML = '<option value="">— Selecciona destino —</option>' +
+    destinosDisponibles_().map(d => `<option value="${d}">${d}</option>`).join("");
+  if (anterior) sel.value = anterior;
+  garitaSede.destino = sel.value;
+  actualizarHintSedeGarita_();
+}
+function actualizarHintSedeGarita_(){
+  const hint = document.getElementById("garita-sede-hint");
+  if (garitaSede.tipo === "planta"){
+    hint.textContent = "Puede leer cualquier unidad — todas parten de Planta Recria.";
+  } else {
+    hint.textContent = garitaSede.destino
+      ? ("Solo va a aceptar unidades programadas hacia " + garitaSede.destino + ".")
+      : "Elige a qué destino/fundo corresponde esta garita.";
+  }
+}
+function seleccionarSedeGarita(tipo){
+  garitaSede.tipo = tipo;
+  document.getElementById("garita-sede-planta").classList.toggle("active", tipo === "planta");
+  document.getElementById("garita-sede-fundo").classList.toggle("active", tipo === "fundo");
+  document.getElementById("garita-sede-destino").classList.toggle("hidden", tipo !== "fundo");
+  if (tipo === "fundo") poblarDestinosGarita_();
+  else actualizarHintSedeGarita_();
+}
+function onCambioSedeDestinoGarita(){
+  garitaSede.destino = document.getElementById("garita-sede-destino").value;
+  actualizarHintSedeGarita_();
+}
+
+// Producción también trabaja por Sede: en Planta se hace la Carga, en el
+// Fundo (destino) se hace la Descarga — ya no hay Ingreso/Salida separado,
+// la Sede define directamente cuál de las dos es.
+let produccionSede = { tipo: "planta", destino: "" };
+function poblarDestinosProduccion_(){
+  const sel = document.getElementById("produccion-sede-destino");
+  const anterior = produccionSede.destino;
+  sel.innerHTML = '<option value="">— Selecciona destino —</option>' +
+    destinosDisponibles_().map(d => `<option value="${d}">${d}</option>`).join("");
+  if (anterior) sel.value = anterior;
+  produccionSede.destino = sel.value;
+  actualizarHintSedeProduccion_();
+}
+function actualizarHintSedeProduccion_(){
+  const hint = document.getElementById("produccion-sede-hint");
+  if (produccionSede.tipo === "planta"){
+    hint.textContent = "Registra la Carga — acepta cualquier unidad, todas cargan en Planta Recria.";
+  } else {
+    hint.textContent = produccionSede.destino
+      ? ("Registra la Descarga — solo acepta unidades programadas hacia " + produccionSede.destino + ".")
+      : "Elige a qué destino/fundo corresponde esta Producción.";
+  }
+}
+function seleccionarSedeProduccion(tipo){
+  produccionSede.tipo = tipo;
+  document.getElementById("produccion-sede-planta").classList.toggle("active", tipo === "planta");
+  document.getElementById("produccion-sede-fundo").classList.toggle("active", tipo === "fundo");
+  document.getElementById("produccion-sede-destino").classList.toggle("hidden", tipo !== "fundo");
+  if (tipo === "fundo") poblarDestinosProduccion_();
+  else actualizarHintSedeProduccion_();
+}
+function onCambioSedeDestinoProduccion(){
+  produccionSede.destino = document.getElementById("produccion-sede-destino").value;
+  actualizarHintSedeProduccion_();
+}
+
 function initGarita(){
   renderGaritaLog();
   document.getElementById("garita-result").innerHTML = "";
   document.getElementById("garita-doc").innerHTML = "";
   seleccionarTipo("garita", "Entrada");
-  if (!docCacheCargado) cargarDocumentacion();
+  seleccionarSedeGarita(garitaSede.tipo);
+  if (!docCacheCargado) cargarDocumentacion().then(() => { if (garitaSede.tipo === "fundo") poblarDestinosGarita_(); });
   if (html5QrCode) return;
   html5QrCode = new Html5Qrcode("reader");
   html5QrCode.start(
@@ -1393,9 +1719,25 @@ async function onScanSuccess(decodedText){
   const zona = "Piura"; // esta base es solo de Piura
   const tipo = tipoSeleccionado.garita;
   const fila = buscarFilaProgramacionHoy(data.placa, data.viaje);
+
+  // Si esta Garita es de un Fundo (destino), solo debe aceptar unidades
+  // programadas hacia ESE destino — Planta Recria sí lee cualquiera, porque
+  // todas las rutas parten de ahí.
+  if (garitaSede.tipo === "fundo"){
+    const destinoFila = fila ? destinoDeRuta_(fila.Ruta) : "";
+    if (!destinoFila || normalizarNombre(destinoFila) !== normalizarNombre(garitaSede.destino)){
+      document.getElementById("garita-result").innerHTML =
+        `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">NO CORRESPONDE</span>Esta unidad no está programada hacia ${garitaSede.destino || "este destino"}.</span></div>`;
+      setTimeout(() => { scannerBusy = false; }, 2200);
+      return;
+    }
+  }
+
+  const origen = garitaSede.tipo === "fundo" ? "GaritaFundo" : "GaritaPlanta";
   try{
-    const registro = await marcarAcceso(data.placa, zona, data.conductor || fila && fila.Conductor || "", tipo, "Garita", {
+    const registro = await marcarAcceso(data.placa, zona, data.conductor || fila && fila.Conductor || "", tipo, origen, {
       viaje: data.viaje || (fila && fila.Viaje) || "1",
+      destino: fila ? destinoDeRuta_(fila.Ruta) : "",
       proveedor: fila ? fila.Proveedor : "", ruta: fila ? fila.Ruta : "", capacidad: fila ? fila.Capacidad : "",
       operacion: fila ? fila.Operación : "", tarifa: fila ? fila.Tarifa : "", descuento: fila ? fila.Descuento : "",
       tarifaTotal: fila ? fila["Tarifa Total"] : "", clasificacion: fila ? fila["Clasificación"] : ""
@@ -1473,8 +1815,8 @@ function renderDetalleDocumentacion(placa, conductorNombre){
     html += filaDoc("RTV vence", docU["Fecha Vencimiento RTV"]);
     html += filaDoc("Alerta RTV", docU["Alerta RTV"], true);
     if ((docU["¿Tiene T.C.?"] || "").toUpperCase().startsWith("SI")){
-      html += filaDoc("T.C. vence", docU["Fecha Vencimiento T.C."]);
-      html += filaDoc("Estado T.C.", docU["Estado T.C."], true);
+      html += filaDoc("Tarjeta Mercancía vence", docU["Fecha Vencimiento T.C."]);
+      html += filaDoc("Estado Tarjeta Mercancía", docU["Estado T.C."], true);
     }
     if ((docU["Cuenta con Poliza RC"] || "").toUpperCase().startsWith("SI")){
       html += filaDoc("Póliza RC vence", docU["Fecha Vencimiento Poliza"]);
@@ -1485,10 +1827,10 @@ function renderDetalleDocumentacion(placa, conductorNombre){
   if (docC){
     html += '<div class="doc-sec-title">DOCUMENTACIÓN DEL CONDUCTOR' + (conductorNombre ? " — " + conductorNombre.toUpperCase() : "") + '</div>';
     html += filaDoc("Licencia revalida", docC["Fecha de Revalidación"]);
-    html += filaDoc("Estado licencia", docC["Estado Licencia"], true);
+    html += filaDoc("Estado licencia", docC["ALERETA LIC."], true);
     html += filaDoc("SCTR", docC["Tipo de SCTR"]);
     html += filaDoc("SCTR vence", docC["Fecha Vencimiento SCTR"]);
-    html += filaDoc("Estado SCTR", docC["Estado SCTR"], true);
+    html += filaDoc("Estado SCTR", docC["ALERTA SCTR"], true);
   }
   html += '</div>';
   cont.innerHTML = html;
@@ -1499,7 +1841,7 @@ let sesionLog = [];
 function renderGaritaLog(){
   const cont = document.getElementById("garita-log");
   const todos = registroEnDemo() ? getRegistrosDemo() : sesionLog;
-  const regs = todos.filter(r => !r.origen || r.origen === "Garita").slice(-8).reverse();
+  const regs = todos.filter(r => !r.origen || r.origen === "GaritaPlanta" || r.origen === "GaritaFundo").slice(-8).reverse();
   if (!regs.length){
     cont.innerHTML = '<div class="empty">Aún no hay registros.</div>';
     return;
@@ -1527,8 +1869,8 @@ function initProduccion(){
   document.getElementById("produccion-bloqueo").innerHTML = "";
   document.getElementById("produccion-carga-form").classList.add("hidden");
   pendingProduccionScan = null;
-  seleccionarTipo("produccion", "Entrada");
-  if (!docCacheCargado) cargarDocumentacion();
+  seleccionarSedeProduccion(produccionSede.tipo);
+  if (!docCacheCargado) cargarDocumentacion().then(() => { if (produccionSede.tipo === "fundo") poblarDestinosProduccion_(); });
   if (html5QrCodeProduccion) return;
   html5QrCodeProduccion = new Html5Qrcode("reader-produccion");
   html5QrCodeProduccion.start(
@@ -1562,23 +1904,42 @@ async function onScanSuccessProduccion(decodedText){
   catch(e){ data = { placa: decodedText }; }
 
   const viaje = data.viaje || "1";
-  // Requisito obligatorio: la unidad ya debe haber sido pedateada (Entrada) en Garita hoy, para ESTE viaje.
-  const chequeoGarita = await verificarPedateoGarita(data.placa, viaje);
-  if (!chequeoGarita.existe){
-    document.getElementById("produccion-bloqueo").innerHTML =
-      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">BLOQUEADO</span>La placa ${data.placa} (viaje ${viaje}) aún no ha sido pedateada en Garita hoy. Debe pasar por Garita primero.</span></div>`;
-    setTimeout(() => { scannerBusyProduccion = false; }, 2200);
-    return;
-  }
 
   // La Capacidad/Ruta que se muestran, y la Tarifa que se guarda (sin
   // mostrarla en pantalla), son las que Logística puso en la Programación
   // de este viaje — no las de Unidades.
   const fila = buscarFilaProgramacionHoy(data.placa, viaje) || {};
+  const destinoFila = fila.Ruta ? destinoDeRuta_(fila.Ruta) : "";
+
+  // Si esta Producción es de un Fundo (Descarga), solo acepta unidades
+  // programadas hacia ESE destino — igual que Garita.
+  if (produccionSede.tipo === "fundo"){
+    if (!destinoFila || normalizarNombre(destinoFila) !== normalizarNombre(produccionSede.destino)){
+      document.getElementById("produccion-bloqueo").innerHTML =
+        `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">NO CORRESPONDE</span>Esta unidad no está programada hacia ${produccionSede.destino || "este destino"}.</span></div>`;
+      setTimeout(() => { scannerBusyProduccion = false; }, 2200);
+      return;
+    }
+  }
+
+  // Requisito obligatorio: Garita debe haber marcado Entrada en ESTA MISMA
+  // sede (Planta o Fundo) antes de que Producción pueda pedatear ahí — sea
+  // Carga (Planta) o Descarga (Fundo).
+  const hoyISO = new Date().toISOString().slice(0, 10);
+  await cargarRegistroAccesoCache();
+  const yaEntroGarita = garitaYaEntroEn_(produccionSede.tipo, data.placa, viaje, hoyISO);
+  if (!yaEntroGarita){
+    const sedeTxt = produccionSede.tipo === "planta" ? "Planta" : "el Fundo";
+    document.getElementById("produccion-bloqueo").innerHTML =
+      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">BLOQUEADO</span>La placa ${data.placa} (viaje ${viaje}) aún no tiene Entrada de Garita en ${sedeTxt}. Debe pasar por Garita primero.</span></div>`;
+    setTimeout(() => { scannerBusyProduccion = false; }, 2200);
+    return;
+  }
+
   // Válido: se pide peso y jabas antes de confirmar el pedateo de Producción,
   // pero la hora que se guarda es la del escaneo, no la del formulario.
   pendingProduccionScan = {
-    ...data, viaje, horaCarga,
+    ...data, viaje, horaCarga, destino: destinoFila,
     conductor: data.conductor || fila.Conductor || "",
     proveedor: fila.Proveedor || "", ruta: fila.Ruta || "", capacidad: fila.Capacidad || "",
     operacion: fila.Operación || "", tarifa: fila.Tarifa || "", descuento: fila.Descuento || "",
@@ -1605,11 +1966,12 @@ async function confirmarPedateoProduccion(){
   const peso = document.getElementById("prod-peso").value.trim();
   const jabas = document.getElementById("prod-jabas").value.trim();
   const zona = data.zona || "";
-  const tipo = tipoSeleccionado.produccion;
+  const tipo = produccionSede.tipo === "planta" ? "Carga" : "Descarga";
+  const origen = produccionSede.tipo === "planta" ? "ProduccionCarga" : "ProduccionDescarga";
 
   try{
-    const registro = await marcarAcceso(data.placa, zona, data.conductor || "", tipo, "Producción", {
-      peso, jabas, horaCarga: data.horaCarga, viaje: data.viaje,
+    const registro = await marcarAcceso(data.placa, zona, data.conductor || "", tipo, origen, {
+      peso, jabas, horaCarga: data.horaCarga, viaje: data.viaje, destino: data.destino,
       proveedor: data.proveedor, ruta: data.ruta, capacidad: data.capacidad,
       operacion: data.operacion, tarifa: data.tarifa, descuento: data.descuento,
       tarifaTotal: data.tarifaTotal, clasificacion: data.clasificacion
@@ -1627,8 +1989,8 @@ async function confirmarPedateoProduccion(){
 }
 
 function mostrarResultadoProduccion(registro, qrData){
-  const cls = registro.tipo === "Entrada" ? "" : "salida";
-  const icon = registro.tipo === "Entrada" ? ICON_CHECK : ICON_OUT;
+  const cls = registro.tipo === "Carga" ? "" : "salida";
+  const icon = registro.tipo === "Carga" ? ICON_CHECK : ICON_OUT;
   const conductor = registro.conductor || qrData.conductor || "";
   // Ruta/Capacidad salen de la Programación (lo que puso Logística para
   // este viaje), no de la ficha de la Unidad. La Tarifa no se muestra acá
@@ -1652,7 +2014,7 @@ function mostrarResultadoProduccion(registro, qrData){
       ${filaDoc("Proveedor", proveedor)}
       ${filaDoc("Ruta", ruta)}
       ${filaDoc("Capacidad", capacidad)}
-      ${filaDoc("Hora de carga", formatHora(registro.hora))}
+      ${filaDoc(registro.tipo === "Carga" ? "Hora de carga" : "Hora de descarga", formatHora(registro.hora))}
       ${filaDoc("Peso", registro.peso)}
       ${filaDoc("Cantidad de jabas", registro.jabas)}
     </div>`;
@@ -1667,7 +2029,7 @@ function mostrarResultadoProduccion(registro, qrData){
 function renderProduccionLog(){
   const cont = document.getElementById("produccion-log");
   const todos = registroEnDemo() ? getRegistrosDemo() : sesionLogProduccion;
-  const regs = todos.filter(r => r.origen === "Producción").slice(-8).reverse();
+  const regs = todos.filter(r => r.origen === "ProduccionCarga" || r.origen === "ProduccionDescarga").slice(-8).reverse();
   if (!regs.length){
     cont.innerHTML = '<div class="empty">Aún no hay registros.</div>';
     return;
@@ -1690,6 +2052,39 @@ const DIAS_PROG = [
 ];
 let filasProgramacion = [];
 
+// Todas las filas YA GUARDADAS en el Sheet para la semana (Lunes) de
+// "Fecha de referencia" — no solo las de hoy, para poder ver/editar/borrar
+// la programación completa de la semana, no solo ir agregando a ciegas.
+function filasSemanaDeReferencia_(){
+  const fechaRefTxt = document.getElementById("prog-fecha").value;
+  if (!fechaRefTxt || !basePiuraCache) return [];
+  const lunesRef = lunesDe(new Date(fechaRefTxt + "T00:00:00")).getTime();
+  return (basePiuraCache.programacion || []).filter(row => {
+    const f = parseFechaProgramacion(row.Fecha);
+    return f && lunesDe(f).getTime() === lunesRef;
+  });
+}
+function convertirFilaSheetAInterna_(row){
+  const dias = {};
+  DIAS_PROG.forEach(d => { dias[d.key] = (row[d.label] || "").toString().trim().toUpperCase() === "X"; });
+  return {
+    proveedor: row.Proveedor || "", conductor: row.Conductor || "", placa: row.Placa || "",
+    viaje: (row.Viaje || "1").toString().trim(), capacidad: row.Capacidad || "", ruta: row.Ruta || "",
+    operacion: row["Operación"] || "", tarifa: row.Tarifa || "", descuento: row.Descuento || "",
+    tarifaTotal: row["Tarifa Total"] || "", clasificacion: row["Clasificación"] || "", dias,
+    yaGuardada: true
+  };
+}
+// Recarga la tabla con lo que ya está guardado para la semana elegida. Se
+// llama al abrir Programar y cada vez que cambia "Fecha de referencia".
+function cargarFilasSemanaEnTabla_(){
+  filasProgramacion = filasSemanaDeReferencia_().map(convertirFilaSheetAInterna_);
+}
+function onCambioFechaProgramacion(){
+  cargarFilasSemanaEnTabla_();
+  renderTablaProgramacion();
+}
+
 async function initLogistica(){
   filasProgramacion = [];
   document.getElementById("prog-guardar-msg").textContent = "";
@@ -1699,6 +2094,7 @@ async function initLogistica(){
   await cargarBasePiura();
   poblarSelectsLogistica();
   limpiarFormularioProgramacion();
+  cargarFilasSemanaEnTabla_();
   renderTablaProgramacion();
 }
 
@@ -1732,18 +2128,146 @@ function onCambioProveedorLogistica(){
     unidades.map(u => `<option value="${u.Placa}">${u.Placa}</option>`).join("");
 }
 
-// La Capacidad es el tamaño (10/12/14 PH) — el mismo que se usa para cruzar
-// la tarifa en la hoja "Rutas Establecidas". Se puede sobreescribir a mano.
-// De paso, sugiere la Cantidad de Viajes según las vueltas típicas de esa
-// ruta (columna "CANTIDAD DE VUELTAS") — también editable.
-function recalcularTarifaLogistica(){
-  const rutaNombre = document.getElementById("prog-ruta").value;
-  const ph = document.getElementById("prog-ph").value;
-  const ruta = basePiuraCache.rutas.find(r => r.RUTA === rutaNombre);
-  document.getElementById("prog-tarifa").value = (ruta && ruta[ph]) ? ruta[ph] : "";
-  if (ruta && ruta["CANTIDAD DE VUELTAS"]){
-    document.getElementById("prog-cant-viajes").value = ruta["CANTIDAD DE VUELTAS"];
+// Capacidad "Real" = la registrada en Base (UNIDADES."Capacidad (PH)") para
+// esa placa — es la que SIEMPRE define el precio. Capacidad "Contrato" es un
+// dato aparte, solo informativo/observación (10/12/14/16 PH elegible a
+// mano), que NO debe mover la tarifa aunque no coincida con la real.
+function capacidadRealDePlaca_(placa){
+  const u = docUnidadesPorPlaca[normalizarPlaca(placa)];
+  return (u && u["Capacidad (PH)"]) || "";
+}
+function actualizarHintCapacidadReal_(){
+  const placa = document.getElementById("prog-placa").value;
+  const real = capacidadRealDePlaca_(placa);
+  document.getElementById("prog-cap-real-hint").textContent = real
+    ? ("Capacidad real (según base): " + real)
+    : (placa ? "Sin capacidad registrada en Base para esta placa." : "");
+  return real;
+}
+let progTipoCapacidad = "real";
+function seleccionarTipoCapacidadProg(tipo){
+  progTipoCapacidad = tipo;
+  document.getElementById("prog-cap-tipo-real").classList.toggle("active", tipo === "real");
+  document.getElementById("prog-cap-tipo-contrato").classList.toggle("active", tipo === "contrato");
+  document.getElementById("prog-ph").disabled = (tipo === "real");
+  if (tipo === "real"){
+    const real = actualizarHintCapacidadReal_();
+    if (real) document.getElementById("prog-ph").value = real;
   }
+  recalcularTarifaLogistica();
+}
+function onCambioPlacaProgramacion(){
+  const real = actualizarHintCapacidadReal_();
+  if (progTipoCapacidad === "real" && real){
+    document.getElementById("prog-ph").value = real;
+  }
+  recalcularTarifaLogistica();
+}
+
+// La Tarifa SIEMPRE sale calculada (nunca a mano). La Cantidad de Viajes es
+// al revés según Clasificación:
+//  - Normal: viene fija de la Ruta (columna "CANTIDAD DE VUELTAS" en Base)
+//    — son las vueltas ya contratadas para esa ruta, no se editan.
+//  - Adicional: la escribe el usuario (cuántos viajes adicionales quiere
+//    agregar, ej. 2) — cada uno se cobra al mismo precio por viaje.
+// Al cambiar a "Adicional" a mano desde el formulario, se resetea Cantidad
+// de Viajes a 1 (en vez de arrastrar las vueltas que tenía puestas Normal) —
+// de ahí en adelante el usuario escribe cuántos adicionales quiere.
+function onCambioClasificacionProg(){
+  if (document.getElementById("prog-clasificacion").value === "Adicional"){
+    document.getElementById("prog-cant-viajes").value = "1";
+  }
+  recalcularTarifaLogistica();
+}
+
+function aplicarSoloLecturaAdicional_(){
+  const esAdicional = document.getElementById("prog-clasificacion").value === "Adicional";
+  document.getElementById("prog-tarifa").readOnly = true;
+  document.getElementById("prog-cant-viajes").readOnly = !esAdicional;
+  // El "Adicional" ya sale a precio reducido (ruta ÷ vueltas de esa ruta) —
+  // aplicarle además un Descuento manual estaría descontando dos veces.
+  document.getElementById("prog-descuento").readOnly = esAdicional;
+  document.getElementById("prog-btn-agregar").textContent = esAdicional ? "+ Agregar viaje Adicional" : "+ Agregar a la programación";
+}
+
+// El precio SIEMPRE se cruza con la Capacidad Real de Base en "Rutas
+// Establecidas" — la Capacidad de Contrato (cuando se elige a mano) es solo
+// para el registro/observación, nunca mueve la tarifa. Si la placa no tiene
+// capacidad registrada en Base, se usa lo seleccionado como respaldo.
+//
+// Clasificación "Normal": la Tarifa es el precio completo de la ruta (según
+// capacidad); "Cantidad de Viajes" sale fija de la columna "CANTIDAD DE
+// VUELTAS" de esa ruta (son las vueltas ya contratadas, no se editan).
+// Clasificación "Adicional": cada viaje adicional se cobra la tarifa de la
+// ruta DIVIDIDA entre su "CANTIDAD DE VUELTAS" (el precio de UN viaje
+// suelto); acá "Cantidad de Viajes" la escribe el usuario — si pone 2, al
+// agregar se suman 2 filas con ese mismo precio por viaje.
+// El Origen siempre es Planta Recria (fijo); el Destino es la otra punta
+// del nombre de la Ruta (ej. "ENCANTADA -> PLANTA RECRIA" → Destino =
+// Encantada). Es solo para mostrar de un vistazo — la Ruta sigue siendo la
+// que se guarda tal cual en la Programación.
+// Saca el Destino (la punta que NO es Planta Recria) del nombre de una
+// Ruta — se reutiliza tanto para mostrarlo en Programar como para que
+// Garita sepa hacia dónde va cada unidad programada.
+function destinoDeRuta_(rutaNombre){
+  if (!rutaNombre) return "";
+  const partes = rutaNombre.split("->").map(p => p.trim());
+  return partes.find(p => !/PLA(N)?TA RECRIA/i.test(p)) || partes[0] || "";
+}
+// Lista de destinos únicos que existen en Rutas Establecidas — para el
+// desplegable de "Fundo" en Garita.
+function destinosDisponibles_(){
+  const set = new Set();
+  ((basePiuraCache && basePiuraCache.rutas) || []).forEach(r => {
+    const d = destinoDeRuta_(r.RUTA);
+    if (d) set.add(d);
+  });
+  return Array.from(set).sort();
+}
+function actualizarOrigenDestinoRuta_(rutaNombre){
+  document.getElementById("prog-origen").value = "PLANTA RECRIA";
+  document.getElementById("prog-destino").value = rutaNombre ? destinoDeRuta_(rutaNombre) : "";
+}
+
+function recalcularTarifaLogistica(){
+  aplicarSoloLecturaAdicional_();
+  const rutaNombre = document.getElementById("prog-ruta").value;
+  actualizarOrigenDestinoRuta_(rutaNombre);
+  const placa = document.getElementById("prog-placa").value;
+  const phParaPrecio = capacidadRealDePlaca_(placa) || document.getElementById("prog-ph").value;
+  const ruta = basePiuraCache.rutas.find(r => r.RUTA === rutaNombre);
+  const tarifaBase = (ruta && ruta[phParaPrecio]) ? parseFloat(ruta[phParaPrecio]) : null;
+  const vueltasRuta = (ruta && ruta["CANTIDAD DE VUELTAS"]) ? parseFloat(ruta["CANTIDAD DE VUELTAS"]) : null;
+  const esAdicional = document.getElementById("prog-clasificacion").value === "Adicional";
+  const cantInput = document.getElementById("prog-cant-viajes");
+
+  // La tarifa de UN viaje SIEMPRE es el precio de la ruta (según capacidad)
+  // dividido entre su "CANTIDAD DE VUELTAS" de Base — sea Normal o
+  // Adicional, cada fila que se guarda es UN viaje individual a ese precio
+  // (si se suman todas las filas de esa ruta, da el precio completo de la
+  // ruta). Descuento se deja siempre en 0: ya no aplica sobre un precio que
+  // sale prorrateado.
+  const tarifaUnitaria = (tarifaBase != null && vueltasRuta) ? (tarifaBase / vueltasRuta) : null;
+  document.getElementById("prog-tarifa").value = (tarifaUnitaria != null) ? tarifaUnitaria.toFixed(2) : "";
+  document.getElementById("prog-descuento").value = "0";
+
+  if (esAdicional){
+    // No se pisa lo que el usuario ya escribió (ej. "2") — solo se pone un
+    // valor por defecto si está vacío o inválido.
+    if (!cantInput.value || parseInt(cantInput.value, 10) < 1) cantInput.value = "1";
+  } else if (vueltasRuta){
+    cantInput.value = vueltasRuta;
+  }
+
+  // Cada viaje se guarda en SU PROPIA fila a precio unitario (para que
+  // Garita/Producción los escaneen por separado) — este texto es solo para
+  // confirmar visualmente cuánto suma en total antes de guardar.
+  const totalHint = document.getElementById("prog-adicional-total-hint");
+  const cant = parseInt(cantInput.value, 10) || 1;
+  totalHint.textContent = (tarifaUnitaria != null && cant > 1)
+    ? `${cant} viajes × ${tarifaUnitaria.toFixed(2)} = ${(tarifaUnitaria * cant).toFixed(2)} en total (${cant} filas)`
+    : "";
+
   recalcularTarifaTotal();
 }
 
@@ -1760,19 +2284,48 @@ function toggleDiaForm(btn){ btn.classList.toggle("on"); }
 function limpiarFormularioProgramacion(){
   document.getElementById("prog-proveedor").value = "";
   onCambioProveedorLogistica();
-  ["prog-cant-viajes","prog-ruta","prog-tarifa","prog-descuento","prog-tarifa-total","prog-clasificacion"]
+  ["prog-cant-viajes","prog-ruta","prog-tarifa","prog-descuento","prog-tarifa-total"]
     .forEach(id => document.getElementById(id).value = "");
   document.getElementById("prog-ph").value = "10 PH";
   document.getElementById("prog-operacion").value = "TRASLADO DE MP";
+  document.getElementById("prog-clasificacion").value = "Normal";
   document.getElementById("prog-cant-viajes").value = "1";
   document.getElementById("prog-descuento").value = "0";
   document.querySelectorAll("#prog-days .prog-day").forEach(b => b.classList.remove("on"));
+  seleccionarTipoCapacidadProg("real");
+  document.getElementById("prog-cap-real-hint").textContent = "";
 }
 
 // "Cantidad de Viajes" ya no es un número de viaje suelto — es cuántas
 // vueltas hace ESTA placa con estos mismos datos (proveedor/ruta/tarifa),
 // así que se agregan todas de una sola vez, numeradas seguido a partir del
 // próximo viaje libre de esa placa (por si ya le habías agregado otros).
+// N° de viaje más alto ya usado por esta placa en la MISMA semana (Lunes de
+// "Fecha de referencia"), contando tanto lo ya guardado en la hoja
+// Programación como lo que está en la tabla local sin guardar todavía. Antes
+// se contaba solo la tabla local, así que abrir Programar en dos sesiones
+// distintas el mismo día (ej. una ruta, luego otra) hacía que ambas
+// empezaran en Viaje 1 y chocaran con la misma Placa+Viaje ya guardada.
+function viajesYaUsadosPlacaSemana_(placa){
+  const fechaRefTxt = document.getElementById("prog-fecha").value;
+  if (!fechaRefTxt) return 0;
+  const lunesRef = lunesDe(new Date(fechaRefTxt + "T00:00:00")).getTime();
+  let maxViaje = 0;
+  (basePiuraCache && basePiuraCache.programacion || []).forEach(row => {
+    if (normalizarPlaca(row.Placa) !== normalizarPlaca(placa)) return;
+    const f = parseFechaProgramacion(row.Fecha);
+    if (!f || lunesDe(f).getTime() !== lunesRef) return;
+    const n = parseInt(row.Viaje, 10);
+    if (!isNaN(n) && n > maxViaje) maxViaje = n;
+  });
+  filasProgramacion.forEach(f => {
+    if (f.placa !== placa) return;
+    const n = parseInt(f.viaje, 10);
+    if (!isNaN(n) && n > maxViaje) maxViaje = n;
+  });
+  return maxViaje;
+}
+
 function agregarFilaProgramacion(){
   const proveedor = document.getElementById("prog-proveedor").value;
   const conductor = document.getElementById("prog-conductor").value;
@@ -1785,7 +2338,7 @@ function agregarFilaProgramacion(){
   if (!placa){ alert("Selecciona una placa."); return; }
   if (!hayDia){ alert("Marca al menos un día de la semana."); return; }
 
-  const viajesPrevios = filasProgramacion.filter(f => f.placa === placa).length;
+  const viajesPrevios = viajesYaUsadosPlacaSemana_(placa);
   const base = {
     proveedor, conductor, placa,
     capacidad: document.getElementById("prog-ph").value,
@@ -1829,13 +2382,27 @@ function editarFilaProgramacion(idx){
   document.getElementById("prog-conductor").value = f.conductor;
   document.getElementById("prog-placa").value = f.placa;
   document.getElementById("prog-cant-viajes").value = "1";
+  // Se abre en modo "Contrato" para no perder la capacidad que tenía
+  // guardada esta fila — si el usuario la vuelve a poner en "Real" se
+  // recalcula sola con la capacidad de Base.
+  seleccionarTipoCapacidadProg("contrato");
   document.getElementById("prog-ph").value = f.capacidad;
+  actualizarHintCapacidadReal_();
   document.getElementById("prog-ruta").value = f.ruta;
+  actualizarOrigenDestinoRuta_(f.ruta);
   document.getElementById("prog-operacion").value = f.operacion;
   document.getElementById("prog-tarifa").value = f.tarifa;
   document.getElementById("prog-descuento").value = f.descuento;
   document.getElementById("prog-tarifa-total").value = f.tarifaTotal;
   document.getElementById("prog-clasificacion").value = f.clasificacion;
+  // seleccionarTipoCapacidadProg('contrato') ya disparó un recálculo (con
+  // datos todavía incompletos en ese momento) que pudo pisar Tarifa/Cantidad
+  // — se reponen los valores históricos de esta fila y se vuelve a aplicar
+  // el bloqueo de solo-lectura ya con la Clasificación correcta.
+  aplicarSoloLecturaAdicional_();
+  document.getElementById("prog-tarifa").value = f.tarifa;
+  document.getElementById("prog-tarifa-total").value = f.tarifaTotal;
+  document.getElementById("prog-cant-viajes").value = "1";
   document.querySelectorAll("#prog-days .prog-day").forEach(b => b.classList.toggle("on", !!f.dias[b.dataset.dia]));
   editandoViajeProgramacion = f.viaje;
   filasProgramacion.splice(idx, 1);
@@ -1856,11 +2423,11 @@ function renderTablaProgramacion(){
   const cabecera = `<tr><th>Proveedor</th><th>Conductor</th><th>Placa</th><th>Viaje</th><th>Cap.</th><th>Ruta</th><th>Operación</th><th>Tarifa</th><th>Desc.</th><th>Tarifa Total</th><th>Clasif.</th>${headDias}<th></th></tr>`;
   if (!filasProgramacion.length){
     table.innerHTML = cabecera +
-      `<tr><td colspan="${12 + DIAS_PROG.length}" style="text-align:center; color:var(--ink-dim);">Aún no agregas unidades a la programación.</td></tr>`;
+      `<tr><td colspan="${12 + DIAS_PROG.length}" style="text-align:center; color:var(--ink-dim);">Aún no hay nada programado esta semana.</td></tr>`;
     return;
   }
   const filas = filasProgramacion.map((f, i) => `
-    <tr>
+    <tr style="${f.yaGuardada ? "background:var(--purple-soft);" : ""}">
       <td>${f.proveedor}</td><td>${f.conductor}</td><td>${f.placa}</td><td>${f.viaje}</td><td>${f.capacidad}</td>
       <td>${f.ruta}</td><td>${f.operacion}</td><td>${f.tarifa}</td><td>${f.descuento}</td><td>${f.tarifaTotal}</td><td>${f.clasificacion}</td>
       ${DIAS_PROG.map(d => `<td class="${f.dias[d.key] ? "day-on" : "day-off"}"></td>`).join("")}
@@ -1906,9 +2473,14 @@ async function guardarProgramacion(){
       if (!res.ok || data.ok === false){
         throw new Error(data.error || ("El servidor respondió " + res.status));
       }
+      // Esta acción ahora REEMPLAZA toda la semana en el Sheet (ver
+      // BasePiura_CodeGS.js) — se recarga solo "Programacion" (no las otras
+      // 4 hojas) para reflejar el estado real ya guardado, más rápido que
+      // un refresco completo.
+      await refrescarBasePiuraTrasGuardar("programacion", "Programacion");
     }
-    msg.textContent = "Programación guardada ✔";
-    filasProgramacion = [];
+    msg.textContent = "Programación de la semana guardada ✔";
+    cargarFilasSemanaEnTabla_();
     renderTablaProgramacion();
   }catch(e){
     msg.textContent = "No se pudo guardar: " + e.message;
@@ -1978,10 +2550,33 @@ function actualizarModoBotonesRegistro(){
   const editandoProveedor = !!(editandoRegistro && editandoRegistro.tipo === "proveedor");
   document.getElementById("reg-p-atajos").classList.toggle("hidden", !editandoProveedor);
 
-  // El buscador se esconde apenas se entra a editar cualquier registro —
-  // que solo se vea el atajo de "Cancelar" del banner, para no confundir
-  // con dos formas distintas de "salir" del modo edición.
-  document.getElementById("registrar-buscar-wrap").classList.toggle("hidden", !!editandoRegistro);
+  actualizarVisibilidadBuscadorRegistro();
+}
+
+// ¿Ya hay algo escrito en el formulario que está visible ahora mismo (sin
+// venir de "editar" un registro encontrado)? Se usa para esconder el
+// buscador también cuando se está dando de alta un Proveedor/Conductor/
+// Unidad NUEVO, no solo cuando se edita uno existente.
+function hayEntradaNuevaEnFormularioActivo_(){
+  if (editandoRegistro) return false; // ese caso ya lo cubre editandoRegistro
+  if (!document.getElementById("registrar-form-proveedor").classList.contains("hidden")){
+    return !!(document.getElementById("reg-p-ruc").value.trim() || document.getElementById("reg-p-nombre").value.trim());
+  }
+  if (!document.getElementById("registrar-form-conductor").classList.contains("hidden")){
+    return !!document.getElementById("reg-c-dni").value.trim();
+  }
+  if (!document.getElementById("registrar-form-unidad").classList.contains("hidden")){
+    return !!document.getElementById("reg-u-placa").value.trim();
+  }
+  return false;
+}
+
+// El buscador se esconde apenas se entra a editar un registro existente, o
+// apenas se empieza a escribir uno nuevo — que no queden dos formas
+// distintas de "estar trabajando" en la pantalla a la vez.
+function actualizarVisibilidadBuscadorRegistro(){
+  document.getElementById("registrar-buscar-wrap").classList.toggle("hidden",
+    !!editandoRegistro || hayEntradaNuevaEnFormularioActivo_());
 }
 
 // Desde un Proveedor ya existente (abierto con el buscador), atajo directo
@@ -2041,9 +2636,24 @@ function poblarSelectsProveedorRegistrar(){
 // Después de guardar/editar/dar de baja contra el Sheet real, se vuelve a
 // traer toda la Base Piura — así la búsqueda y los selectores de Proveedor
 // quedan al día sin tener que salir de la pantalla.
-async function refrescarBasePiuraTrasGuardar(){
-  basePiuraCache = null; docCacheCargado = false;
-  await cargarBasePiura();
+// Antes esto volvía a pedir las 5 hojas de Base Piura después de CADA
+// guardado (5 requests a Apps Script, que ya de por sí es lento) aunque
+// solo hubiera cambiado una. Ahora, si se sabe cuál hoja cambió, se vuelve
+// a pedir solo esa — mucho más rápido. Sin argumentos, cae al refresco
+// completo de antes (por si se necesita en algún caso nuevo).
+async function refrescarBasePiuraTrasGuardar(claveCache, nombreHoja){
+  if (basePiuraCache && claveCache && nombreHoja){
+    try{
+      const texto = await fetch(getPiuraUrl() + "?hoja=" + encodeURIComponent(nombreHoja)).then(r => r.text());
+      basePiuraCache[claveCache] = parseCSVObjetos(texto);
+      construirCachesDocumentacion();
+    }catch(e){
+      console.error(e);
+    }
+  } else {
+    basePiuraCache = null; docCacheCargado = false;
+    await cargarBasePiura();
+  }
   poblarSelectsProveedorRegistrar();
 }
 
@@ -2151,13 +2761,12 @@ function cargarParaEditar(tipo, row){
     proveedorActivo = row.Proveedor || proveedorActivo;
     document.getElementById("reg-u-placa").value = row.Placa || "";
     document.getElementById("reg-u-tipo").value = row["Tipo de Unidad"] || "";
-    document.getElementById("reg-u-capacidad-ph").value = row["Carrocería"] || "10 PH";
+    document.getElementById("reg-u-capacidad-ph").value = row["Capacidad (PH)"] || "10 PH";
     document.getElementById("reg-u-soat-msg").textContent = "";
     document.getElementById("reg-u-ruc").value = row.RUC || "";
     document.getElementById("reg-u-proveedor").value = row.Proveedor || "";
     document.getElementById("reg-u-zona").value = row.ZONA || "Piura";
     document.getElementById("reg-u-sede").value = row.SEDE || "";
-    document.getElementById("reg-u-pasajeros").value = row["N° Pasajeros"] || "";
     document.getElementById("reg-u-anio").value = row["Año Fab."] || "";
     document.getElementById("reg-u-fecha-soat").value = ddmmyyyyAFechaInput(row["Fecha Vencimiento SOAT"]);
     previsualizarAlerta("reg-u-fecha-soat", "reg-u-alerta-soat");
@@ -2195,6 +2804,8 @@ function limpiarFormularioProveedorNuevo(){
 }
 
 async function guardarProveedorNuevo(){
+  const btnGuardar = document.getElementById("reg-p-btn-guardar");
+  if (btnGuardar.disabled) return; // ya se está guardando — ignora el doble clic/tap
   const msg = document.getElementById("registrar-msg");
   const nombre = document.getElementById("reg-p-nombre").value.trim();
   if (!nombre){ msg.textContent = "Falta el nombre del proveedor."; return; }
@@ -2209,6 +2820,7 @@ async function guardarProveedorNuevo(){
   if (editando) datos.proveedorOriginal = editando.clave;
 
   msg.textContent = "Guardando…";
+  btnGuardar.disabled = true;
   try{
     if (piuraEnDemo()){
       if (editando){
@@ -2223,7 +2835,7 @@ async function guardarProveedorNuevo(){
       let data = {};
       try{ data = await res.json(); }catch(e){}
       if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
-      await refrescarBasePiuraTrasGuardar();
+      await refrescarBasePiuraTrasGuardar("proveedores", "PROVEEDORES");
     }
     const creado = !editando;
     editandoRegistro = null;
@@ -2248,6 +2860,8 @@ async function guardarProveedorNuevo(){
     }
   }catch(e){
     msg.textContent = "No se pudo guardar: " + e.message;
+  }finally{
+    btnGuardar.disabled = false;
   }
 }
 
@@ -2356,26 +2970,34 @@ async function crearConductorEnBackend_(datos){
 
 // Guarda de verdad todos los conductores que se fueron cargando a la lista.
 async function guardarTodosConductores(){
+  const btnGuardar = document.getElementById("reg-c-btn-guardar-todas");
+  if (btnGuardar.disabled) return; // ya se está guardando — ignora el doble clic/tap
   const msg = document.getElementById("registrar-msg");
   if (!conductoresPendientesRegistro.length){ msg.textContent = "Agrega al menos un conductor a la lista."; return; }
   msg.textContent = "Guardando…";
+  btnGuardar.disabled = true;
   try{
-    for (const datos of conductoresPendientesRegistro){
-      await crearConductorEnBackend_(datos);
-    }
-    if (!piuraEnDemo()) await refrescarBasePiuraTrasGuardar();
+    await Promise.all(conductoresPendientesRegistro.map(datos => crearConductorEnBackend_(datos)));
+    if (!piuraEnDemo()) await refrescarBasePiuraTrasGuardar("conductores", "CONDUCTORES");
     const cantidad = conductoresPendientesRegistro.length;
     conductoresPendientesRegistro = [];
     renderListaConductoresRegistro();
     msg.textContent = cantidad + " conductor(es) guardado(s) ✔";
   }catch(e){
-    msg.textContent = "No se pudo guardar: " + e.message + " — lo que ya se alcanzó a guardar antes del error quedó hecho; corrige y reintenta con lo que falte.";
+    // Se guardan en paralelo (más rápido) — si uno falla, revisa en el Sheet
+    // cuáles sí quedaron guardados (no hay un orden garantizado) y vuelve a
+    // intentar solo con los que falten.
+    msg.textContent = "No se pudo guardar: " + e.message + " — revisa en el Sheet cuáles sí quedaron guardados y reintenta con los que falten.";
+  }finally{
+    btnGuardar.disabled = false;
   }
 }
 
 // Edición de un conductor ya existente (encontrado con el buscador) — se
 // guarda directo, sin pasar por la lista.
 async function guardarConductorNuevo(){
+  const btnGuardar = document.getElementById("reg-c-btn-guardar");
+  if (btnGuardar.disabled) return; // ya se está guardando — ignora el doble clic/tap
   const msg = document.getElementById("registrar-msg");
   if (!editandoRegistro || editandoRegistro.tipo !== "conductor"){ msg.textContent = "Nada que editar."; return; }
   const datos = leerDatosConductorForm();
@@ -2384,6 +3006,7 @@ async function guardarConductorNuevo(){
   datos.dniOriginal = editandoRegistro.clave;
 
   msg.textContent = "Guardando…";
+  btnGuardar.disabled = true;
   try{
     if (piuraEnDemo()){
       const fila = basePiuraCache.conductores.find(c => c.DNI === editandoRegistro.clave);
@@ -2393,7 +3016,7 @@ async function guardarConductorNuevo(){
       let data = {};
       try{ data = await res.json(); }catch(e){}
       if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
-      await refrescarBasePiuraTrasGuardar();
+      await refrescarBasePiuraTrasGuardar("conductores", "CONDUCTORES");
     }
     editandoRegistro = null;
     document.getElementById("registrar-editando-banner").classList.add("hidden");
@@ -2402,10 +3025,14 @@ async function guardarConductorNuevo(){
     msg.textContent = "Conductor actualizado ✔";
   }catch(e){
     msg.textContent = "No se pudo guardar: " + e.message;
+  }finally{
+    btnGuardar.disabled = false;
   }
 }
 
 async function darDeBajaConductor(){
+  const btnBaja = document.getElementById("reg-c-btn-baja");
+  if (btnBaja.disabled) return; // ya se está guardando — ignora el doble clic/tap
   const msg = document.getElementById("registrar-msg");
   if (!editandoRegistro || editandoRegistro.tipo !== "conductor"){
     msg.textContent = "Primero busca y abre el conductor que vas a dar de baja."; return;
@@ -2416,6 +3043,7 @@ async function darDeBajaConductor(){
   const proveedorSaliente = document.getElementById("reg-c-proveedor").value;
 
   msg.textContent = "Guardando…";
+  btnBaja.disabled = true;
   try{
     if (piuraEnDemo()){
       const fila = basePiuraCache.conductores.find(c => c.DNI === dniSaliente);
@@ -2425,7 +3053,7 @@ async function darDeBajaConductor(){
       let data = {};
       try{ data = await res.json(); }catch(e){}
       if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
-      await refrescarBasePiuraTrasGuardar();
+      await refrescarBasePiuraTrasGuardar("conductores", "CONDUCTORES");
     }
     editandoRegistro = null;
     document.getElementById("registrar-editando-banner").classList.add("hidden");
@@ -2436,12 +3064,14 @@ async function darDeBajaConductor(){
     msg.textContent = "Conductor anterior marcado como inactivo. Completa el DNI y los datos de \"" + reemplazo + "\" y agrégalo a la lista.";
   }catch(e){
     msg.textContent = "No se pudo guardar: " + e.message;
+  }finally{
+    btnBaja.disabled = false;
   }
 }
 
 /* ---- Unidad: alta (lista) / edición ---- */
 function limpiarFormularioUnidadNueva(resetProveedor){
-  ["reg-u-placa","reg-u-tipo","reg-u-ruc","reg-u-sede","reg-u-pasajeros","reg-u-anio",
+  ["reg-u-placa","reg-u-tipo","reg-u-ruc","reg-u-sede","reg-u-anio",
    "reg-u-fecha-soat","reg-u-alerta-soat","reg-u-fecha-rtv","reg-u-alerta-rtv","reg-u-fecha-tc","reg-u-alerta-tc"]
     .forEach(id => document.getElementById(id).value = "");
   if (resetProveedor) document.getElementById("reg-u-proveedor").value = "";
@@ -2461,7 +3091,6 @@ function leerDatosUnidadForm(){
     proveedor: document.getElementById("reg-u-proveedor").value,
     zona: document.getElementById("reg-u-zona").value,
     sede: document.getElementById("reg-u-sede").value.trim(),
-    numPasajeros: document.getElementById("reg-u-pasajeros").value.trim(),
     anioFab: document.getElementById("reg-u-anio").value.trim(),
     fechaVencimientoSoat: document.getElementById("reg-u-fecha-soat").value,
     fechaVencimientoRtv: document.getElementById("reg-u-fecha-rtv").value,
@@ -2557,7 +3186,7 @@ function renderListaUnidadesRegistro(){
 
 async function crearUnidadEnBackend_(datos){
   if (piuraEnDemo()){
-    basePiuraCache.unidades.push({ Placa: datos.placa, "Tipo de Unidad": datos.tipoUnidad, "Carrocería": datos.capacidadPH, RUC: datos.ruc, Proveedor: datos.proveedor, ZONA: datos.zona, SEDE: datos.sede, "N° Pasajeros": datos.numPasajeros, Estado:"POR INGRESAR" });
+    basePiuraCache.unidades.push({ Placa: datos.placa, "Tipo de Unidad": datos.tipoUnidad, "Capacidad (PH)": datos.capacidadPH, RUC: datos.ruc, Proveedor: datos.proveedor, ZONA: datos.zona, SEDE: datos.sede, Estado:"POR INGRESAR" });
     return;
   }
   const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"guardarUnidad", datos }) });
@@ -2569,15 +3198,16 @@ async function crearUnidadEnBackend_(datos){
 // Guarda de verdad todas las unidades de la lista y, al terminar, encadena
 // directo a Conductor (con el mismo proveedor ya puesto).
 async function guardarTodasUnidades(){
+  const btnGuardar = document.getElementById("reg-u-btn-guardar-todas");
+  if (btnGuardar.disabled) return; // ya se está guardando — ignora el doble clic/tap
   const msg = document.getElementById("registrar-msg");
   if (!unidadesPendientesRegistro.length){ msg.textContent = "Agrega al menos una unidad a la lista."; return; }
   msg.textContent = "Guardando…";
+  btnGuardar.disabled = true;
   try{
     const primera = unidadesPendientesRegistro[0];
-    for (const datos of unidadesPendientesRegistro){
-      await crearUnidadEnBackend_(datos);
-    }
-    if (!piuraEnDemo()) await refrescarBasePiuraTrasGuardar();
+    await Promise.all(unidadesPendientesRegistro.map(datos => crearUnidadEnBackend_(datos)));
+    if (!piuraEnDemo()) await refrescarBasePiuraTrasGuardar("unidades", "UNIDADES");
     const cantidad = unidadesPendientesRegistro.length;
     unidadesPendientesRegistro = [];
     renderListaUnidadesRegistro();
@@ -2588,13 +3218,17 @@ async function guardarTodasUnidades(){
     document.getElementById("reg-c-sede").value = primera.sede;
     msg.textContent = cantidad + " unidad(es) guardada(s) ✔ — ahora registra su(s) conductor(es).";
   }catch(e){
-    msg.textContent = "No se pudo guardar: " + e.message + " — lo que ya se alcanzó a guardar antes del error quedó hecho; corrige y reintenta con lo que falte.";
+    msg.textContent = "No se pudo guardar: " + e.message + " — revisa en el Sheet cuáles sí quedaron guardadas y reintenta con las que falten.";
+  }finally{
+    btnGuardar.disabled = false;
   }
 }
 
 // Edición de una unidad ya existente (encontrada con el buscador) — se
 // guarda directo, sin pasar por la lista.
 async function guardarUnidadNueva(){
+  const btnGuardar = document.getElementById("reg-u-btn-guardar");
+  if (btnGuardar.disabled) return; // ya se está guardando — ignora el doble clic/tap
   const msg = document.getElementById("registrar-msg");
   if (!editandoRegistro || editandoRegistro.tipo !== "unidad"){ msg.textContent = "Nada que editar."; return; }
   const datos = leerDatosUnidadForm();
@@ -2602,16 +3236,17 @@ async function guardarUnidadNueva(){
   datos.placaOriginal = editandoRegistro.clave;
 
   msg.textContent = "Guardando…";
+  btnGuardar.disabled = true;
   try{
     if (piuraEnDemo()){
       const fila = basePiuraCache.unidades.find(u => normalizarPlaca(u.Placa) === normalizarPlaca(editandoRegistro.clave));
-      if (fila){ fila.Placa = datos.placa; fila["Tipo de Unidad"] = datos.tipoUnidad; fila["Carrocería"] = datos.capacidadPH; fila.RUC = datos.ruc; fila.Proveedor = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
+      if (fila){ fila.Placa = datos.placa; fila["Tipo de Unidad"] = datos.tipoUnidad; fila["Capacidad (PH)"] = datos.capacidadPH; fila.RUC = datos.ruc; fila.Proveedor = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
     } else {
       const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"actualizarUnidad", datos }) });
       let data = {};
       try{ data = await res.json(); }catch(e){}
       if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
-      await refrescarBasePiuraTrasGuardar();
+      await refrescarBasePiuraTrasGuardar("unidades", "UNIDADES");
     }
     editandoRegistro = null;
     document.getElementById("registrar-editando-banner").classList.add("hidden");
@@ -2620,6 +3255,8 @@ async function guardarUnidadNueva(){
     msg.textContent = "Unidad actualizada ✔";
   }catch(e){
     msg.textContent = "No se pudo guardar: " + e.message;
+  }finally{
+    btnGuardar.disabled = false;
   }
 }
 
@@ -2629,7 +3266,6 @@ async function guardarUnidadNueva(){
 function initSettings(){
   document.getElementById("registro-url").value = getRegistroUrl();
   document.getElementById("piura-url").value = getPiuraUrl();
-  document.getElementById("pin-nuevo").value = getGaritaPin();
   updateConnStatus();
 }
 function updateConnStatus(){
@@ -2645,10 +3281,8 @@ function updateConnStatus(){
 function guardarConfig(){
   const r = document.getElementById("registro-url").value.trim();
   const pz = document.getElementById("piura-url").value.trim();
-  const pin = document.getElementById("pin-nuevo").value.trim();
   if (r) localStorage.setItem(LS_KEYS.registroUrl, r); else localStorage.removeItem(LS_KEYS.registroUrl);
   if (pz) localStorage.setItem(LS_KEYS.piuraUrl, pz); else localStorage.removeItem(LS_KEYS.piuraUrl);
-  if (pin) localStorage.setItem("acc_garita_pin", pin);
   basePiuraCache = null;
   docCacheCargado = false;
   updateConnStatus();
