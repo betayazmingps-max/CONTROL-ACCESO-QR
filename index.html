@@ -1498,26 +1498,47 @@ let html5QrCodeDni = null;
 function iniciarEscaneoDni(){
   document.getElementById("conductor-dni-wrap").classList.add("hidden");
   document.getElementById("conductor-dni-scan-wrap").classList.remove("hidden");
-  document.getElementById("dni-scan-error").classList.add("hidden");
+  const errEl = document.getElementById("dni-scan-error");
+  errEl.classList.add("hidden");
   if (html5QrCodeDni) return;
-  html5QrCodeDni = new Html5Qrcode("conductor-dni-reader", {
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.PDF_417,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39,
-      Html5QrcodeSupportedFormats.QR_CODE
-    ]
-  });
-  html5QrCodeDni.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 260, height: 140 } },
-    onCodigoBarraDniDetectado,
-    () => {}
-  ).catch(err => {
-    const el = document.getElementById("dni-scan-error");
-    el.textContent = "No se pudo abrir la cámara. Revisa permisos del navegador.";
-    el.classList.remove("hidden");
-  });
+  // Si la librería no cargó (sin internet, CDN bloqueado, navegador viejo),
+  // antes esto tiraba un error silencioso y solo se veía el cuadro vacío,
+  // sin ningún aviso — ahora se muestra un mensaje claro en ese caso.
+  try{
+    if (typeof Html5Qrcode === "undefined") throw new Error("Librería de cámara no disponible");
+    html5QrCodeDni = new Html5Qrcode("conductor-dni-reader", {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.PDF_417,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    });
+    html5QrCodeDni.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        // Un tamaño fijo (ej. 260x140) puede ser más grande que la cámara
+        // real del celular y la librería simplemente no abre nada, sin
+        // avisar — con una función se ajusta solo al tamaño real de cada
+        // cámara.
+        qrbox: (viewfinderWidth, viewfinderHeight) => ({
+          width: Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.85),
+          height: Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.45)
+        })
+      },
+      onCodigoBarraDniDetectado,
+      () => {}
+    ).catch(err => {
+      console.error(err);
+      errEl.textContent = "No se pudo abrir la cámara. Revisa permisos del navegador o intenta con otro navegador.";
+      errEl.classList.remove("hidden");
+    });
+  }catch(e){
+    console.error(e);
+    errEl.textContent = "No se pudo cargar el lector de cámara. Revisa tu conexión a internet e intenta de nuevo.";
+    errEl.classList.remove("hidden");
+  }
 }
 function detenerEscaneoDni(){
   document.getElementById("conductor-dni-scan-wrap").classList.add("hidden");
