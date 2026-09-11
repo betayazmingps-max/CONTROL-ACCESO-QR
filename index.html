@@ -2298,9 +2298,12 @@ function recalcularTarifaLogistica(){
   // Cada viaje se guarda en SU PROPIA fila a precio unitario (para que
   // Garita/Producción los escaneen por separado) — este texto es solo para
   // confirmar visualmente cuánto suma en total antes de guardar.
+  // Este detalle (precio por viaje × cantidad) solo aplica a Adicional,
+  // donde la Cantidad de Viajes la escribe el usuario — en Normal la
+  // cantidad ya viene fija de Base, así que no hace falta mostrarlo.
   const totalHint = document.getElementById("prog-adicional-total-hint");
   const cant = parseInt(cantInput.value, 10) || 1;
-  totalHint.textContent = (tarifaUnitaria != null && cant > 1)
+  totalHint.textContent = (esAdicional && tarifaUnitaria != null && cant > 1)
     ? `${cant} viajes × ${tarifaUnitaria.toFixed(2)} = ${(tarifaUnitaria * cant).toFixed(2)} en total (${cant} filas)`
     : "";
 
