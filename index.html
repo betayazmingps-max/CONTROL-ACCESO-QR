@@ -542,15 +542,6 @@
         <div id="dni-error" class="dni-error hidden"></div>
         <div id="dni-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
         <button class="btn block" style="margin-top:16px;" onclick="iniciarEscaneoDni()">📷 Escanear código de barras del DNI</button>
-
-        <p class="hint" style="text-align:center; margin-top:14px;">
-          <a href="javascript:void(0)" onclick="toggleAccesoConductorEmergencia()" style="color:var(--ink-dim); text-decoration:underline;">¿No puedes escanear? (solo emergencias)</a>
-        </p>
-        <div id="conductor-dni-manual-form" class="hidden" style="margin-top:6px;">
-          <input type="text" id="emergencia-dni-conductor" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergenciaConductor();">
-          <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergenciaConductor()">Buscar mi viaje</button>
-          <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.).</p>
-        </div>
       </div>
     </div>
 
@@ -1601,8 +1592,6 @@ async function initConductor(){
   document.getElementById("conductor-dni-wrap").classList.remove("hidden");
   document.getElementById("dni-input").value = "";
   document.getElementById("dni-error").classList.add("hidden");
-  document.getElementById("conductor-dni-manual-form").classList.add("hidden");
-  document.getElementById("emergencia-dni-conductor").value = "";
   setTimeout(() => document.getElementById("dni-input").focus(), 50);
   if (!docCacheCargado) await cargarDocumentacion(); // trae también la Programación
 }
@@ -3591,33 +3580,18 @@ function usarDemo(){
   updateConnStatus();
 }
 
-// Acceso de emergencia: existe en 2 lugares — un enlace chiquito y
-// escondido en la propia pantalla de Conductor (para cuando el código de
-// barras está dañado y el Conductor no tiene cómo avisarle a nadie más),
-// y el mismo campo dentro de Configuración (para que Logística lo resuelva
-// por él). Ninguno de los dos reemplaza el escaneo como flujo normal —
-// por diseño no son un botón grande ni la opción por defecto.
-async function verificarDniManual_(dni){
-  if (!dni) return;
-  document.getElementById("dni-input").value = dni;
-  await verificarDniConductor();
-}
-function toggleAccesoConductorEmergencia(){
-  const form = document.getElementById("conductor-dni-manual-form");
-  form.classList.toggle("hidden");
-  if (!form.classList.contains("hidden")) setTimeout(() => document.getElementById("emergencia-dni-conductor").focus(), 50);
-}
-async function accesoManualEmergenciaConductor(){
-  const dni = document.getElementById("emergencia-dni-conductor").value.trim();
-  await verificarDniManual_(dni);
-}
-// Desde Configuración: hay que navegar a la pantalla de Conductor primero.
+// Acceso de emergencia: vive SOLO dentro de Configuración (solo Logística/
+// Admin llega ahí, con Usuario+Contraseña) — nada de esto se muestra en la
+// pantalla de Conductor, ni siquiera escondido, para no darle a nadie la
+// tentación del atajo fácil en vez de escanear. Si a un Conductor no le
+// lee el DNI, llama a Logística y ella lo resuelve desde acá.
 async function accesoManualEmergencia(){
   const dni = document.getElementById("emergencia-licencia").value.trim();
   if (!dni) return;
   goTo("conductor");
   await initConductor();
-  await verificarDniManual_(dni);
+  document.getElementById("dni-input").value = dni;
+  await verificarDniConductor();
 }
 
 /* =========================================================
