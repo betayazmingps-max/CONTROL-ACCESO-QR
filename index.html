@@ -617,7 +617,15 @@
       <div class="title">Configuración</div>
     </div>
     <div class="settings-form">
-      <button type="button" class="btn ghost block settings-row" onclick="toggleSettingsConductorOtros()">Otros</button>
+      <div class="field" style="display:flex; align-items:center; justify-content:space-between;">
+        <label style="margin:0;">Modo oscuro</label>
+        <label class="switch">
+          <input type="checkbox" id="modo-oscuro-toggle-conductor" onchange="toggleModoOscuroConductor()">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <button type="button" class="btn ghost block settings-row" style="margin-top:10px;" onclick="toggleSettingsConductorOtros()">Otros</button>
       <div id="settings-conductor-otros" class="hidden" style="margin-top:10px;">
         <button type="button" class="btn ghost block" onclick="toggleAccesoManualConductor()">No se lee el código de barras</button>
         <div id="settings-conductor-dni-form" class="hidden" style="margin-top:10px;">
@@ -1581,6 +1589,7 @@ function initSettingsConductor(){
   document.getElementById("settings-conductor-otros").classList.add("hidden");
   document.getElementById("settings-conductor-dni-form").classList.add("hidden");
   document.getElementById("emergencia-dni-conductor").value = "";
+  document.getElementById("modo-oscuro-toggle-conductor").checked = localStorage.getItem("acc_modo_oscuro") === "1";
 }
 
 /* =========================================================
@@ -3650,6 +3659,9 @@ function aplicarModoOscuro_(activo){
 }
 function toggleModoOscuro(){
   aplicarModoOscuro_(document.getElementById("modo-oscuro-toggle").checked);
+}
+function toggleModoOscuroConductor(){
+  aplicarModoOscuro_(document.getElementById("modo-oscuro-toggle-conductor").checked);
 }
 function updateConnStatus(){
   const du = document.getElementById("conn-dot-u");
