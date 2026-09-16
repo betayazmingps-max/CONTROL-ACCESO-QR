@@ -1062,7 +1062,12 @@
       <div class="title">Configuración</div>
     </div>
 
-    <div class="settings-form">
+    <div class="tipo-toggle" id="settings-tab-toggle" style="margin-bottom:14px;">
+      <button type="button" class="active" onclick="seleccionarTabSettings('conexion')" id="settings-tab-btn-conexion">Conexión</button>
+      <button type="button" onclick="seleccionarTabSettings('otros')" id="settings-tab-btn-otros">Otros</button>
+    </div>
+
+    <div class="settings-form" id="settings-tab-conexion">
       <div class="field">
         <label>Estado de conexión</label>
         <div><span class="status-dot" id="conn-dot-u"></span><span id="conn-text-u"></span></div>
@@ -1081,10 +1086,14 @@
       <p class="hint" style="margin-top:14px;">
         Las placas, conductores y su documentación (SOAT/RTV/SCTR) salen de la Base Piura. Cada marcación (pedateo) se guarda en la hoja "Registro Accesos QR". Solo cambia estas URLs si te pasan un nuevo despliegue.
       </p>
-      <div class="field" style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
-        <label for="emergencia-licencia">Acceso manual de emergencia (Conductor)</label>
+    </div>
+
+    <div class="settings-form hidden" id="settings-tab-otros">
+      <button type="button" class="btn ghost block" onclick="toggleAccesoManualSettings()">No se lee el código de barras</button>
+      <div id="settings-dni-manual-form" class="hidden" style="margin-top:10px;">
+        <label for="emergencia-licencia" class="hint">Ingresar con DNI</label>
         <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
-        <button class="btn ghost block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar su viaje</button>
+        <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar su viaje</button>
         <p class="hint" style="margin-top:6px;">El Conductor SIEMPRE debe escanear su DNI — esto es solo para que Logística resuelva el caso puntual de un código de barras dañado o ilegible, no un atajo de uso normal.</p>
       </div>
     </div>
@@ -3550,6 +3559,20 @@ function initSettings(){
   document.getElementById("registro-url").value = getRegistroUrl();
   document.getElementById("piura-url").value = getPiuraUrl();
   updateConnStatus();
+  seleccionarTabSettings("conexion");
+  document.getElementById("settings-dni-manual-form").classList.add("hidden");
+  document.getElementById("emergencia-licencia").value = "";
+}
+function seleccionarTabSettings(tab){
+  document.getElementById("settings-tab-btn-conexion").classList.toggle("active", tab === "conexion");
+  document.getElementById("settings-tab-btn-otros").classList.toggle("active", tab === "otros");
+  document.getElementById("settings-tab-conexion").classList.toggle("hidden", tab !== "conexion");
+  document.getElementById("settings-tab-otros").classList.toggle("hidden", tab !== "otros");
+}
+function toggleAccesoManualSettings(){
+  const form = document.getElementById("settings-dni-manual-form");
+  form.classList.toggle("hidden");
+  if (!form.classList.contains("hidden")) setTimeout(() => document.getElementById("emergencia-licencia").focus(), 50);
 }
 function updateConnStatus(){
   const du = document.getElementById("conn-dot-u");
