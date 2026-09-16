@@ -429,14 +429,41 @@
       </span>
       <span>
         <div class="label">Soy Conductor</div>
-        <div class="sub">Genero el QR de mi unidad</div>
+        <div class="sub">Escaneo mi DNI y genero el QR de mi unidad</div>
       </span>
       <span class="chev">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </span>
     </button>
 
-    <button class="role-btn" id="role-btn-garita" onclick="abrirPinGarita('garita')">
+    <button class="role-btn" onclick="abrirLogin()">
+      <span class="icon-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </span>
+      <span>
+        <div class="label">Iniciar sesión</div>
+        <div class="sub">Garita, Producción o Logística — con tu usuario</div>
+      </span>
+      <span class="chev">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </button>
+
+    <div style="flex:1"></div>
+    <div class="install-tip" id="install-tip"></div>
+    <p class="hint" style="text-align:center; margin-top:6px;">Desarrollado por Ing. Yazmin Atuncar — Logística Transportes</p>
+  </section>
+
+  <!-- MENÚ (después de iniciar sesión con rol Logística/Admin — acceso a todo) -->
+  <section id="screen-menu" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="goTo('role')">←</button>
+      <div class="title">Menú</div>
+    </div>
+
+    <button class="role-btn" onclick="goTo('garita')">
       <span class="icon-chip">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="7" width="14" height="12" rx="2"/>
@@ -445,7 +472,7 @@
         </svg>
       </span>
       <span>
-        <div class="label">Soy Garita</div>
+        <div class="label">Garita</div>
         <div class="sub">Escaneo QR para marcar ingreso/salida</div>
       </span>
       <span class="chev">
@@ -453,14 +480,14 @@
       </span>
     </button>
 
-    <button class="role-btn" id="role-btn-produccion" onclick="abrirPinGarita('produccion')">
+    <button class="role-btn" onclick="goTo('produccion')">
       <span class="icon-chip">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 3v18h18"/><path d="M7 15l3-4 3 3 5-7"/>
         </svg>
       </span>
       <span>
-        <div class="label">Soy Producción</div>
+        <div class="label">Producción</div>
         <div class="sub">Escaneo QR para ver datos de la unidad</div>
       </span>
       <span class="chev">
@@ -468,30 +495,33 @@
       </span>
     </button>
 
-    <button class="role-btn" id="role-btn-logistica" onclick="abrirPinGarita('logistica')">
+    <button class="role-btn" onclick="goTo('logistica')">
       <span class="icon-chip">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/>
         </svg>
       </span>
       <span>
-        <div class="label">Soy Logística</div>
-        <div class="sub">Armo la programación de la semana</div>
+        <div class="label">Logística</div>
+        <div class="sub">Registrar altas y armar la programación</div>
       </span>
       <span class="chev">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </span>
     </button>
 
-    <div style="flex:1"></div>
-    <div style="display:flex; justify-content:center;">
-      <button class="btn ghost" style="font-size:13px; padding:9px 14px; display:inline-flex; align-items:center; gap:7px;" onclick="abrirPinGarita('settings')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Configuración
-      </button>
-    </div>
-    <div class="install-tip" id="install-tip"></div>
-    <p class="hint" style="text-align:center; margin-top:6px;">Desarrollado por Ing. Yazmin Atuncar — Logística Transportes</p>
+    <button class="role-btn" onclick="goTo('settings')">
+      <span class="icon-chip">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </span>
+      <span>
+        <div class="label">Configuración</div>
+        <div class="sub">URLs de conexión y acceso avanzado</div>
+      </span>
+      <span class="chev">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </button>
   </section>
 
   <!-- CONDUCTOR -->
@@ -512,6 +542,15 @@
         <div id="dni-error" class="dni-error hidden"></div>
         <div id="dni-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
         <button class="btn block" style="margin-top:16px;" onclick="iniciarEscaneoDni()">📷 Escanear código de barras del DNI</button>
+
+        <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:14px;">
+          <button type="button" class="btn ghost block" onclick="toggleAccesoConductorEmergencia()">¿No puedes escanear tu DNI?</button>
+          <div id="conductor-dni-manual-form" class="hidden" style="margin-top:10px;">
+            <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
+            <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar mi viaje</button>
+            <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.).</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -550,32 +589,23 @@
     </div>
   </section>
 
-  <!-- GARITA PIN GATE -->
-  <section id="screen-garita-pin" class="screen hidden">
+  <!-- LOGIN (Garita/Producción/Logística — el rol de la cuenta decide a dónde entra) -->
+  <section id="screen-login" class="screen hidden">
     <div class="topbar" style="margin:-22px -20px 4px;">
       <button class="back" onclick="goTo('role')">←</button>
-      <div class="title" id="pin-gate-title">Acceso</div>
+      <div class="title">Iniciar sesión</div>
     </div>
     <div class="qr-card" style="padding:26px 22px;">
       <div class="icon-chip" style="width:52px; height:52px; margin-bottom:6px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
       </div>
-      <div style="font-weight:700; font-size:16px; text-align:center;" id="login-titulo">Inicia sesión</div>
-      <input type="password" inputmode="numeric" id="pin-input" placeholder="PIN" maxlength="8" class="hidden" style="text-align:center; font-size:20px; letter-spacing:4px; margin-top:14px;" onkeydown="if(event.key==='Enter') verificarLogin();">
+      <div style="font-weight:700; font-size:16px; text-align:center;">Inicia sesión</div>
       <input type="text" id="login-usuario" placeholder="Usuario" autocomplete="off" style="text-align:center; font-size:16px; margin-top:14px;" onkeydown="if(event.key==='Enter') document.getElementById('login-contrasena').focus();">
       <input type="password" id="login-contrasena" placeholder="Contraseña" style="text-align:center; font-size:16px; margin-top:10px;" onkeydown="if(event.key==='Enter') verificarLogin();">
       <div id="pin-error" class="hidden" style="color:var(--alert); font-size:13px; margin-top:8px;">Usuario o contraseña incorrectos.</div>
       <div id="login-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
       <button class="btn block" style="margin-top:16px;" onclick="verificarLogin()">Ingresar</button>
-
-      <div id="settings-acceso-conductor" class="hidden" style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
-        <button type="button" class="btn ghost block" onclick="toggleAccesoConductorEmergencia()">¿Eres Conductor y no puedes escanear tu DNI?</button>
-        <div id="settings-acceso-conductor-form" class="hidden" style="margin-top:10px;">
-          <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
-          <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar mi viaje</button>
-          <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.) — el Conductor normalmente entra escaneando su DNI desde "Soy Conductor".</p>
-        </div>
-      </div>
+      <p class="hint" style="margin-top:10px; text-align:center;">Tu usuario define a dónde entras: Garita, Producción o Logística.</p>
     </div>
   </section>
 
@@ -1048,16 +1078,6 @@
         <div style="margin-top:4px;"><span class="status-dot" id="conn-dot-r"></span><span id="conn-text-r"></span></div>
       </div>
       <div class="field">
-        <label for="rol-dispositivo">Rol de este dispositivo</label>
-        <select id="rol-dispositivo" onchange="guardarRolDispositivo()">
-          <option value="todos">Todos los roles (Logística / Admin)</option>
-          <option value="conductor">Solo Conductor</option>
-          <option value="garita">Solo Garita</option>
-          <option value="produccion">Solo Producción</option>
-        </select>
-        <p class="hint" style="margin-top:6px;">Define qué botones ve este celular en la pantalla de inicio — así cada quien solo ve su propio rol y no se confunde con los demás. Se guarda en este celular, cámbialo cuando quieras desde aquí mismo.</p>
-      </div>
-      <div class="field">
         <label for="registro-url">URL del Apps Script — Registro de Accesos</label>
         <input type="text" id="registro-url" placeholder="https://script.google.com/macros/s/.../exec">
       </div>
@@ -1095,7 +1115,7 @@
         qué viajes ya tienen sus 6 marcas completas).
    ========================================================= */
 
-const LS_KEYS = { registroUrl: "acc_registro_url", piuraUrl: "acc_piura_url", registros: "acc_registros_demo", programacion: "acc_programacion_demo", rolDispositivo: "acc_rol_dispositivo" };
+const LS_KEYS = { registroUrl: "acc_registro_url", piuraUrl: "acc_piura_url", registros: "acc_registros_demo", programacion: "acc_programacion_demo" };
 
 // Apps Script de la hoja "Registro Accesos QR" — ahí se guarda cada Entrada/Salida.
 const DEFAULT_REGISTRO_URL = "https://script.google.com/macros/s/AKfycbzQEPQ0XBMDBWbes6b2OwCGrbNAPFMqvZufaegje8Ak0hfM_Ag1jL4ZD02G86uLWGLXyg/exec";
@@ -1411,52 +1431,48 @@ function formatHora(iso){
    ========================================================= */
 // Usuarios de acceso: viven en la hoja "USUARIOS" de Base Piura, nunca en
 // este código. La app solo manda usuario+contraseña y el Apps Script
-// contesta sí/no — la lista completa (con contraseñas) nunca sale del
-// servidor, así el repo puede seguir siendo público sin exponer nada.
-const DEFAULT_GARITA_PIN = "1234"; // Garita no usa usuario, es un PIN fijo compartido.
-const DEMO_USUARIOS = [{ usuario: "ADMIN", contrasena: "1234", nombre: "Demo", rol: "" }];
+// contesta sí/no + el Rol (columna D de esa hoja) — la lista completa (con
+// contraseñas) nunca sale del servidor, así el repo puede seguir siendo
+// público sin exponer nada. Ya no hay PIN de Garita ni pantalla para
+// elegir el rol a mano: TODOS (Garita/Producción/Logística) entran por el
+// mismo login, y el Rol de su cuenta decide sola a qué pantalla van.
+const DEMO_USUARIOS = [
+  { usuario: "ADMIN", contrasena: "1234", nombre: "Demo", rol: "" },
+  { usuario: "GARITA1", contrasena: "1234", nombre: "Garita Demo", rol: "Garita" },
+  { usuario: "PRODUCCION1", contrasena: "1234", nombre: "Producción Demo", rol: "Producción" },
+  { usuario: "LOGISTICA1", contrasena: "1234", nombre: "Logística Demo", rol: "Logística" },
+];
 let usuarioActivo = null; // nombre de quien inició sesión (para trazabilidad)
 
-let pinDestino = "garita";
-const PIN_GATE_TITULOS = { garita: "Acceso Garita", produccion: "Acceso Producción", logistica: "Acceso Logística", settings: "Configuración" };
-function abrirPinGarita(destino){
-  pinDestino = destino || "garita";
-  const esGarita = pinDestino === "garita";
-  document.getElementById("pin-gate-title").textContent = PIN_GATE_TITULOS[pinDestino] || "Acceso";
-  document.getElementById("login-titulo").textContent = esGarita ? "Ingresa el PIN" : "Inicia sesión";
-  goTo("garita-pin");
-  document.getElementById("pin-input").classList.toggle("hidden", !esGarita);
-  document.getElementById("login-usuario").classList.toggle("hidden", esGarita);
-  document.getElementById("login-contrasena").classList.toggle("hidden", esGarita);
-  document.getElementById("pin-input").value = "";
+function abrirLogin(){
+  goTo("login");
   document.getElementById("login-usuario").value = "";
   document.getElementById("login-contrasena").value = "";
   document.getElementById("pin-error").classList.add("hidden");
-  document.getElementById("settings-acceso-conductor").classList.toggle("hidden", pinDestino !== "settings");
-  document.getElementById("settings-acceso-conductor-form").classList.add("hidden");
-  document.getElementById("emergencia-licencia").value = "";
-  setTimeout(() => document.getElementById(esGarita ? "pin-input" : "login-usuario").focus(), 50);
+  setTimeout(() => document.getElementById("login-usuario").focus(), 50);
 }
 function toggleAccesoConductorEmergencia(){
-  const form = document.getElementById("settings-acceso-conductor-form");
+  const form = document.getElementById("conductor-dni-manual-form");
   form.classList.toggle("hidden");
   if (!form.classList.contains("hidden")) setTimeout(() => document.getElementById("emergencia-licencia").focus(), 50);
+}
+// A qué pantalla manda cada Rol de la hoja USUARIOS. Se compara sin tildes
+// ni mayúsculas y por "contiene" (no exacto) para no depender de que el
+// texto esté escrito idéntico en el Sheet ("Garita", "GARITA", "garita "
+// funcionan igual). Un Rol vacío o que no calce con ninguno de los tres
+// (ej. "Admin") cae en "menu" — acceso completo, a propósito, como red de
+// seguridad para no dejar a nadie sin poder entrar por un typo en el Sheet.
+function destinoPorRol_(rolTexto){
+  const rol = quitarAcentos((rolTexto || "").toString()).trim().toUpperCase();
+  if (rol.includes("GARITA")) return "garita";
+  if (rol.includes("PRODUC")) return "produccion";
+  if (rol.includes("LOGIST")) return "menu";
+  return "menu";
 }
 async function verificarLogin(){
   const errorEl = document.getElementById("pin-error");
   const loadingEl = document.getElementById("login-loading");
   errorEl.classList.add("hidden");
-
-  if (pinDestino === "garita"){
-    const val = document.getElementById("pin-input").value.trim();
-    if (val === DEFAULT_GARITA_PIN){
-      goTo(pinDestino);
-    } else {
-      errorEl.textContent = "PIN incorrecto.";
-      errorEl.classList.remove("hidden");
-    }
-    return;
-  }
 
   const usuario = document.getElementById("login-usuario").value.trim();
   const contrasena = document.getElementById("login-contrasena").value;
@@ -1483,7 +1499,7 @@ async function verificarLogin(){
 
   if (resultado.ok){
     usuarioActivo = resultado.nombre || usuario;
-    goTo(pinDestino);
+    goTo(destinoPorRol_(resultado.rol));
   } else {
     errorEl.textContent = resultado.error || "Usuario o contraseña incorrectos.";
     errorEl.classList.remove("hidden");
@@ -3541,35 +3557,8 @@ async function guardarUnidadNueva(){
 function initSettings(){
   document.getElementById("registro-url").value = getRegistroUrl();
   document.getElementById("piura-url").value = getPiuraUrl();
-  document.getElementById("rol-dispositivo").value = localStorage.getItem(LS_KEYS.rolDispositivo) || "todos";
   updateConnStatus();
 }
-
-// Qué botones de la pantalla de inicio ve ESTE celular — así un Conductor
-// solo ve "Soy Conductor", Garita solo "Soy Garita", etc., sin tener que
-// andar explicándole cuál botón es el suyo entre los 4. Se guarda por
-// dispositivo (localStorage), no es un login — Logística/Admin deja este
-// celular en "Todos" para poder entrar a cualquier pantalla.
-const ROL_DISPOSITIVO_BOTONES = {
-  conductor:  ["role-btn-conductor"],
-  garita:     ["role-btn-garita"],
-  produccion: ["role-btn-produccion"],
-  todos:      ["role-btn-conductor", "role-btn-garita", "role-btn-produccion", "role-btn-logistica"]
-};
-function aplicarRolDispositivo_(){
-  const rol = localStorage.getItem(LS_KEYS.rolDispositivo) || "todos";
-  const visibles = ROL_DISPOSITIVO_BOTONES[rol] || ROL_DISPOSITIVO_BOTONES.todos;
-  ["role-btn-conductor", "role-btn-garita", "role-btn-produccion", "role-btn-logistica"].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.classList.toggle("hidden", !visibles.includes(id));
-  });
-}
-function guardarRolDispositivo(){
-  const val = document.getElementById("rol-dispositivo").value;
-  localStorage.setItem(LS_KEYS.rolDispositivo, val);
-  aplicarRolDispositivo_();
-}
-aplicarRolDispositivo_();
 function updateConnStatus(){
   const du = document.getElementById("conn-dot-u");
   const tu = document.getElementById("conn-text-u");
@@ -3599,15 +3588,13 @@ function usarDemo(){
   updateConnStatus();
 }
 
-// Acceso de emergencia: vive en la pantalla de login de Configuración (no
-// requiere usuario/contraseña) porque el Conductor no tiene esas
-// credenciales — solo por si su DNI no se puede escanear (dañado, sin cámara).
+// Acceso de emergencia: vive directo en la pantalla de Conductor (que ya
+// no pide login ni PIN para nada) — solo por si el código de barras del
+// DNI no se puede escanear (dañado, sin cámara, etc.).
 async function accesoManualEmergencia(){
-  const licencia = document.getElementById("emergencia-licencia").value.trim();
-  if (!licencia) return;
-  goTo("conductor");
-  await initConductor();
-  document.getElementById("dni-input").value = licencia;
+  const dni = document.getElementById("emergencia-licencia").value.trim();
+  if (!dni) return;
+  document.getElementById("dni-input").value = dni;
   await verificarDniConductor();
 }
 
