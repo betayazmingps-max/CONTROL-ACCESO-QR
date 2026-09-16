@@ -556,6 +556,9 @@
     <div class="topbar" style="margin:-22px -20px 4px;">
       <button class="back" onclick="goTo('role')">←</button>
       <div class="title">Conductor</div>
+      <button class="back" onclick="goTo('settings-conductor')" title="Configuración">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
     </div>
 
     <div id="conductor-dni-wrap">
@@ -604,6 +607,26 @@
         <div class="qr-foot">Válido para Transporte de Materia Prima y Jabas Vacías</div>
       </div>
       <p class="hint" style="text-align:center; margin-top:10px;">Muestra esta pantalla a garita, o imprime el QR y colócalo en el parabrisas.</p>
+    </div>
+  </section>
+
+  <!-- CONFIGURACIÓN DEL CONDUCTOR (sin login — solo lo que le sirve a él) -->
+  <section id="screen-settings-conductor" class="screen hidden">
+    <div class="topbar" style="margin:-22px -20px 4px;">
+      <button class="back" onclick="goTo('conductor')">←</button>
+      <div class="title">Configuración</div>
+    </div>
+    <div class="settings-form">
+      <button type="button" class="btn ghost block settings-row" onclick="toggleSettingsConductorOtros()">Otros</button>
+      <div id="settings-conductor-otros" class="hidden" style="margin-top:10px;">
+        <button type="button" class="btn ghost block" onclick="toggleAccesoManualConductor()">No se lee el código de barras</button>
+        <div id="settings-conductor-dni-form" class="hidden" style="margin-top:10px;">
+          <label for="emergencia-dni-conductor" class="hint">Ingresar con DNI</label>
+          <input type="text" id="emergencia-dni-conductor" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergenciaConductor();">
+          <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergenciaConductor()">Buscar mi viaje</button>
+          <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.) — el escaneo sigue siendo la forma normal de entrar.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1552,6 +1575,12 @@ function goTo(screen){
   if (screen === "logistica-programar") initLogistica();
   if (screen === "logistica-registrar") initRegistrar();
   if (screen === "settings") initSettings();
+  if (screen === "settings-conductor") initSettingsConductor();
+}
+function initSettingsConductor(){
+  document.getElementById("settings-conductor-otros").classList.add("hidden");
+  document.getElementById("settings-conductor-dni-form").classList.add("hidden");
+  document.getElementById("emergencia-dni-conductor").value = "";
 }
 
 /* =========================================================
@@ -3651,18 +3680,35 @@ function usarDemo(){
   updateConnStatus();
 }
 
-// Acceso de emergencia: vive SOLO dentro de Configuración (solo Logística/
-// Admin llega ahí, con Usuario+Contraseña) — nada de esto se muestra en la
-// pantalla de Conductor, ni siquiera escondido, para no darle a nadie la
-// tentación del atajo fácil en vez de escanear. Si a un Conductor no le
-// lee el DNI, llama a Logística y ella lo resuelve desde acá.
-async function accesoManualEmergencia(){
-  const dni = document.getElementById("emergencia-licencia").value.trim();
+// Acceso de emergencia: existe en 2 Configuración distintas — la de
+// Logística (para cuando el Conductor la llama porque no le lee el DNI) y
+// una propia del Conductor (para que lo resuelva solo, sin llamar a
+// nadie). En ambas queda 2 toques adentro de "Otros" a propósito, para
+// que no compita con escanear como la forma normal de entrar.
+async function buscarViajeConDni_(dni){
   if (!dni) return;
   goTo("conductor");
   await initConductor();
   document.getElementById("dni-input").value = dni;
   await verificarDniConductor();
+}
+// Desde Configuración de Logística.
+async function accesoManualEmergencia(){
+  const dni = document.getElementById("emergencia-licencia").value.trim();
+  await buscarViajeConDni_(dni);
+}
+// Desde la Configuración propia del Conductor (sin login).
+function toggleSettingsConductorOtros(){
+  document.getElementById("settings-conductor-otros").classList.toggle("hidden");
+}
+function toggleAccesoManualConductor(){
+  const form = document.getElementById("settings-conductor-dni-form");
+  form.classList.toggle("hidden");
+  if (!form.classList.contains("hidden")) setTimeout(() => document.getElementById("emergencia-dni-conductor").focus(), 50);
+}
+async function accesoManualEmergenciaConductor(){
+  const dni = document.getElementById("emergencia-dni-conductor").value.trim();
+  await buscarViajeConDni_(dni);
 }
 
 /* =========================================================
