@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<script>try{ if (localStorage.getItem("acc_modo_oscuro") === "1") document.documentElement.setAttribute("data-theme","dark"); }catch(e){}</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -35,6 +36,30 @@
     --radius:16px;
     --radius-sm:10px;
   }
+  html[data-theme="dark"]{
+    --bg:#15101F;
+    --bg-2:#1B1530;
+    --purple:#9B6BF0;
+    --purple-dark:#7C4FDA;
+    --purple-soft:#28203E;
+    --lime:#8FD34B;
+    --lime-soft:#233420;
+    --card:#201A33;
+    --line:#332B4D;
+    --ink:#EEEBF7;
+    --ink-dim:#A79FC2;
+    --alert:#F4867C;
+    --alert-soft:#3A2230;
+  }
+  /* El QR necesita blanco/negro de verdad para que cualquier cámara lo lea
+     bien — no debe cambiar con el modo oscuro. */
+  html[data-theme="dark"] .qr-card #qrcode{ background:#fff; }
+  .switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch .slider{ position:absolute; inset:0; background:var(--line); border-radius:999px; cursor:pointer; transition:background .15s; }
+  .switch .slider::before{ content:""; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .15s; box-shadow:0 1px 3px rgba(0,0,0,0.25); }
+  .switch input:checked + .slider{ background:var(--purple); }
+  .switch input:checked + .slider::before{ transform:translateX(18px); }
   @keyframes flashOk{ 0%{ box-shadow:0 0 0 0 rgba(143,211,75,0.55);} 100%{ box-shadow:0 0 0 22px rgba(143,211,75,0);} }
   @keyframes flashAmber{ 0%{ box-shadow:0 0 0 0 rgba(91,42,158,0.45);} 100%{ box-shadow:0 0 0 22px rgba(91,42,158,0);} }
   @keyframes popIn{ 0%{ transform:scale(0.92); opacity:0;} 100%{ transform:scale(1); opacity:1;} }
@@ -299,6 +324,8 @@
   .btn.block{ width:100%; }
 
   .settings-form .field{ margin-bottom:16px; }
+  .settings-row{ text-align:left; display:flex; align-items:center; justify-content:space-between; }
+  .settings-row::after{ content:"›"; font-size:18px; color:var(--ink-dim); }
   .hint{ color:var(--ink-dim); font-size:12.5px; line-height:1.5; }
   .status-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
   .status-dot.on{ background:var(--lime); }
@@ -1062,39 +1089,49 @@
       <div class="title">Configuración</div>
     </div>
 
-    <div class="tipo-toggle" id="settings-tab-toggle" style="margin-bottom:14px;">
-      <button type="button" class="active" onclick="seleccionarTabSettings('conexion')" id="settings-tab-btn-conexion">Conexión</button>
-      <button type="button" onclick="seleccionarTabSettings('otros')" id="settings-tab-btn-otros">Otros</button>
-    </div>
+    <div class="settings-form">
+      <!-- Conexión (desplegable) -->
+      <button type="button" class="btn ghost block settings-row" onclick="toggleSettingsSeccion('conexion')">Conexión</button>
+      <div id="settings-seccion-conexion" class="hidden" style="margin-top:10px;">
+        <div class="field">
+          <label>Estado de conexión</label>
+          <div><span class="status-dot" id="conn-dot-u"></span><span id="conn-text-u"></span></div>
+          <div style="margin-top:4px;"><span class="status-dot" id="conn-dot-r"></span><span id="conn-text-r"></span></div>
+        </div>
+        <div class="field">
+          <label for="registro-url">URL del Apps Script — Registro de Accesos</label>
+          <input type="text" id="registro-url" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <div class="field">
+          <label for="piura-url">URL del Apps Script — Base Piura (Proveedores/Conductores/Unidades/Rutas, documentación SOAT-RTV-SCTR y Programación)</label>
+          <input type="text" id="piura-url" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <button class="btn block" onclick="guardarConfig()">Guardar</button>
+        <button class="btn ghost block" style="margin-top:10px;" onclick="usarDemo()">Usar modo demo (datos de prueba)</button>
+        <p class="hint" style="margin-top:14px;">
+          Las placas, conductores y su documentación (SOAT/RTV/SCTR) salen de la Base Piura. Cada marcación (pedateo) se guarda en la hoja "Registro Accesos QR". Solo cambia estas URLs si te pasan un nuevo despliegue.
+        </p>
+      </div>
 
-    <div class="settings-form" id="settings-tab-conexion">
-      <div class="field">
-        <label>Estado de conexión</label>
-        <div><span class="status-dot" id="conn-dot-u"></span><span id="conn-text-u"></span></div>
-        <div style="margin-top:4px;"><span class="status-dot" id="conn-dot-r"></span><span id="conn-text-r"></span></div>
+      <!-- Modo oscuro (switch directo, no desplegable) -->
+      <div class="field" style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+        <label style="margin:0;">Modo oscuro</label>
+        <label class="switch">
+          <input type="checkbox" id="modo-oscuro-toggle" onchange="toggleModoOscuro()">
+          <span class="slider"></span>
+        </label>
       </div>
-      <div class="field">
-        <label for="registro-url">URL del Apps Script — Registro de Accesos</label>
-        <input type="text" id="registro-url" placeholder="https://script.google.com/macros/s/.../exec">
-      </div>
-      <div class="field">
-        <label for="piura-url">URL del Apps Script — Base Piura (Proveedores/Conductores/Unidades/Rutas, documentación SOAT-RTV-SCTR y Programación)</label>
-        <input type="text" id="piura-url" placeholder="https://script.google.com/macros/s/.../exec">
-      </div>
-      <button class="btn block" onclick="guardarConfig()">Guardar</button>
-      <button class="btn ghost block" style="margin-top:10px;" onclick="usarDemo()">Usar modo demo (datos de prueba)</button>
-      <p class="hint" style="margin-top:14px;">
-        Las placas, conductores y su documentación (SOAT/RTV/SCTR) salen de la Base Piura. Cada marcación (pedateo) se guarda en la hoja "Registro Accesos QR". Solo cambia estas URLs si te pasan un nuevo despliegue.
-      </p>
-    </div>
 
-    <div class="settings-form hidden" id="settings-tab-otros">
-      <button type="button" class="btn ghost block" onclick="toggleAccesoManualSettings()">No se lee el código de barras</button>
-      <div id="settings-dni-manual-form" class="hidden" style="margin-top:10px;">
-        <label for="emergencia-licencia" class="hint">Ingresar con DNI</label>
-        <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
-        <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar su viaje</button>
-        <p class="hint" style="margin-top:6px;">El Conductor SIEMPRE debe escanear su DNI — esto es solo para que Logística resuelva el caso puntual de un código de barras dañado o ilegible, no un atajo de uso normal.</p>
+      <!-- Otros (desplegable) -->
+      <button type="button" class="btn ghost block settings-row" style="margin-top:10px;" onclick="toggleSettingsSeccion('otros')">Otros</button>
+      <div id="settings-seccion-otros" class="hidden" style="margin-top:10px;">
+        <button type="button" class="btn ghost block" onclick="toggleAccesoManualSettings()">No se lee el código de barras</button>
+        <div id="settings-dni-manual-form" class="hidden" style="margin-top:10px;">
+          <label for="emergencia-licencia" class="hint">Ingresar con DNI</label>
+          <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
+          <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar su viaje</button>
+          <p class="hint" style="margin-top:6px;">El Conductor SIEMPRE debe escanear su DNI — esto es solo para que Logística resuelva el caso puntual de un código de barras dañado o ilegible, no un atajo de uso normal.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -3559,20 +3596,31 @@ function initSettings(){
   document.getElementById("registro-url").value = getRegistroUrl();
   document.getElementById("piura-url").value = getPiuraUrl();
   updateConnStatus();
-  seleccionarTabSettings("conexion");
+  document.getElementById("settings-seccion-conexion").classList.add("hidden");
+  document.getElementById("settings-seccion-otros").classList.add("hidden");
   document.getElementById("settings-dni-manual-form").classList.add("hidden");
   document.getElementById("emergencia-licencia").value = "";
+  document.getElementById("modo-oscuro-toggle").checked = localStorage.getItem("acc_modo_oscuro") === "1";
 }
-function seleccionarTabSettings(tab){
-  document.getElementById("settings-tab-btn-conexion").classList.toggle("active", tab === "conexion");
-  document.getElementById("settings-tab-btn-otros").classList.toggle("active", tab === "otros");
-  document.getElementById("settings-tab-conexion").classList.toggle("hidden", tab !== "conexion");
-  document.getElementById("settings-tab-otros").classList.toggle("hidden", tab !== "otros");
+// Configuración es una listita de secciones que se despliegan al tocarlas
+// (en vez de pestañas) — todas cerradas al entrar, para que lo poco usual
+// (como "Otros" -> "No se lee el código de barras") quede un par de toques
+// más adentro y no compita visualmente con lo que se usa seguido.
+function toggleSettingsSeccion(nombre){
+  const el = document.getElementById("settings-seccion-" + nombre);
+  el.classList.toggle("hidden");
 }
 function toggleAccesoManualSettings(){
   const form = document.getElementById("settings-dni-manual-form");
   form.classList.toggle("hidden");
   if (!form.classList.contains("hidden")) setTimeout(() => document.getElementById("emergencia-licencia").focus(), 50);
+}
+function aplicarModoOscuro_(activo){
+  document.documentElement.setAttribute("data-theme", activo ? "dark" : "light");
+  localStorage.setItem("acc_modo_oscuro", activo ? "1" : "0");
+}
+function toggleModoOscuro(){
+  aplicarModoOscuro_(document.getElementById("modo-oscuro-toggle").checked);
 }
 function updateConnStatus(){
   const du = document.getElementById("conn-dot-u");
