@@ -710,9 +710,16 @@
 
     <div id="registrar-form-proveedor" class="prog-form">
       <div class="row2">
-        <div><label class="hint">RUC</label><input type="text" id="reg-p-ruc" placeholder="10708507046" oninput="actualizarVisibilidadBuscadorRegistro()"></div>
-        <div><label class="hint">Proveedor (razón social)</label><input type="text" id="reg-p-nombre" placeholder="Nombre del proveedor" oninput="actualizarVisibilidadBuscadorRegistro()"></div>
+        <div>
+          <label class="hint">RUC</label>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="reg-p-ruc" inputmode="numeric" placeholder="10708507046" style="flex:1;" oninput="actualizarVisibilidadBuscadorRegistro()">
+            <button type="button" class="btn ghost" style="padding:0 14px; white-space:nowrap;" onclick="buscarRucProveedor()">🔎 RUC</button>
+          </div>
+        </div>
+        <div><label class="hint">Proveedor (razón social)</label><input type="text" id="reg-p-nombre" placeholder="Se llena solo al buscar RUC" oninput="actualizarVisibilidadBuscadorRegistro()"></div>
       </div>
+      <div id="reg-p-ruc-msg" class="hint" style="margin:0;"></div>
       <div class="row2">
         <div>
           <label class="hint">Zona</label>
@@ -1162,15 +1169,18 @@ let basePiuraCache = null;
 // Apps Script responde a través de una redirección a una URL "echo" de
 // Google (script.googleusercontent.com) que a veces falla de forma
 // pasajera (404/500 intermitente, ajeno a nuestro código) — se reintenta
-// una vez antes de darse por vencido, para que un fallo suelto de Google
-// no tumbe TODA la Base Piura (antes, si UNA de las 5 hojas fallaba, el
-// Promise.all descartaba las 5).
-async function fetchConReintento_(url, intentos){
+// antes de darse por vencido. Al principio esto solo cubría las LECTURAS
+// (?hoja=X); los GUARDADOS (POST) usaban fetch() sin reintento, así que el
+// mismo fallo intermitente de Google se veía como "error 404" al guardar,
+// sin ninguna segunda oportunidad. Ahora `opciones` acepta method/body para
+// que también se pueda reintentar un POST.
+async function fetchConReintento_(url, opciones, intentos){
+  opciones = opciones || {};
   intentos = intentos || 2;
   let ultimoError;
   for (let i = 0; i < intentos; i++){
     try{
-      const res = await fetch(url);
+      const res = await fetch(url, opciones);
       if (res.ok) return res;
       ultimoError = new Error("HTTP " + res.status);
     }catch(e){
@@ -1266,7 +1276,7 @@ async function marcarAcceso(placa, zona, conductor, tipo, origen, extra){
     saveRegistrosDemo(regs);
     return registro;
   }
-  const res = await fetch(getRegistroUrl(), {
+  const res = await fetchConReintento_(getRegistroUrl(), {
     method: "POST",
     body: JSON.stringify({ action:"marcarAcceso", placa, zona, conductor, tipo, origen, ...extra, horaCarga: horaISO, viaje })
   });
@@ -1429,7 +1439,7 @@ async function verificarLogin(){
     resultado = u ? { ok: true, nombre: u.nombre, rol: u.rol } : { ok: false, error: "Usuario o contraseña incorrectos." };
   } else {
     try{
-      const res = await fetch(getPiuraUrl(), { method: "POST", body: JSON.stringify({ action: "login", usuario, contrasena }) });
+      const res = await fetchConReintento_(getPiuraUrl(), { method: "POST", body: JSON.stringify({ action: "login", usuario, contrasena }) });
       resultado = await res.json();
     }catch(e){
       resultado = { ok: false, error: "No se pudo conectar. Revisa tu conexión." };
@@ -2634,7 +2644,7 @@ async function guardarProgramacion(){
       historial.push(lote);
       saveProgramacionDemo(historial);
     } else {
-      const res = await fetch(getPiuraUrl(), {
+      const res = await fetchConReintento_(getPiuraUrl(), {
         method: "POST",
         body: JSON.stringify({ action: "guardarProgramacion", fecha, filas: filasProgramacion })
       });
@@ -2974,6 +2984,27 @@ function cancelarEdicionRegistro(){
 /* ---- Proveedor: alta / edición ---- */
 function limpiarFormularioProveedorNuevo(){
   ["reg-p-ruc","reg-p-nombre","reg-p-sede"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("reg-p-ruc-msg").textContent = "";
+}
+
+// Autocompleta la razón social a partir del RUC — mismo patrón que
+// buscarDniLicenciaConductor()/buscarSoatRtvUnidad(), contra el Worker
+// portalbeta (consulta_ruc_cd, vía ConsultaDatos).
+async function buscarRucProveedor(){
+  const msg = document.getElementById("reg-p-ruc-msg");
+  const ruc = document.getElementById("reg-p-ruc").value.trim().replace(/\D/g, "");
+  if (ruc.length !== 11){ msg.textContent = "Ingresa un RUC de 11 dígitos primero."; return; }
+
+  msg.textContent = "Consultando RUC…";
+  const r = await workerFetch("consulta_ruc_cd", { ruc });
+
+  if (r._error || r.ok === false){
+    msg.textContent = "RUC: " + (r._error || r.error || "no encontrado");
+    return;
+  }
+  if (r.razon_social) document.getElementById("reg-p-nombre").value = r.razon_social;
+  actualizarVisibilidadBuscadorRegistro();
+  msg.textContent = "RUC ✔ (" + (r.estado || "consultado") + (r.condicion ? " · " + r.condicion : "") + ")";
 }
 
 async function guardarProveedorNuevo(){
@@ -3004,7 +3035,7 @@ async function guardarProveedorNuevo(){
       }
       poblarSelectsProveedorRegistrar();
     } else {
-      const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action: editando ? "actualizarProveedor" : "guardarProveedor", datos }) });
+      const res = await fetchConReintento_(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action: editando ? "actualizarProveedor" : "guardarProveedor", datos }) });
       let data = {};
       try{ data = await res.json(); }catch(e){}
       if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
@@ -3135,7 +3166,7 @@ async function crearConductorEnBackend_(datos){
     basePiuraCache.conductores.push({ DNI: datos.dni, Conductor: datos.conductor, RUC: datos.ruc, PROVEEDOR: datos.proveedor, ZONA: datos.zona, SEDE: datos.sede, Estado:"POR INGRESAR" });
     return;
   }
-  const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"guardarConductor", datos }) });
+  const res = await fetchConReintento_(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"guardarConductor", datos }) });
   let data = {};
   try{ data = await res.json(); }catch(e){}
   if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
@@ -3185,7 +3216,7 @@ async function guardarConductorNuevo(){
       const fila = basePiuraCache.conductores.find(c => c.DNI === editandoRegistro.clave);
       if (fila){ fila.DNI = datos.dni; fila.Conductor = datos.conductor; fila.RUC = datos.ruc; fila.PROVEEDOR = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
     } else {
-      const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"actualizarConductor", datos }) });
+      const res = await fetchConReintento_(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"actualizarConductor", datos }) });
       let data = {};
       try{ data = await res.json(); }catch(e){}
       if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
@@ -3222,7 +3253,7 @@ async function darDeBajaConductor(){
       const fila = basePiuraCache.conductores.find(c => c.DNI === dniSaliente);
       if (fila){ fila.Estado = "INACTIVO"; fila.CONDICION = "INACTIVO - Reemplazo: " + reemplazo; }
     } else {
-      const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"desactivarConductor", datos:{ dni: dniSaliente, reemplazo } }) });
+      const res = await fetchConReintento_(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"desactivarConductor", datos:{ dni: dniSaliente, reemplazo } }) });
       let data = {};
       try{ data = await res.json(); }catch(e){}
       if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
@@ -3362,7 +3393,7 @@ async function crearUnidadEnBackend_(datos){
     basePiuraCache.unidades.push({ Placa: datos.placa, "Tipo de Unidad": datos.tipoUnidad, "Capacidad (PH)": datos.capacidadPH, RUC: datos.ruc, Proveedor: datos.proveedor, ZONA: datos.zona, SEDE: datos.sede, Estado:"POR INGRESAR" });
     return;
   }
-  const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"guardarUnidad", datos }) });
+  const res = await fetchConReintento_(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"guardarUnidad", datos }) });
   let data = {};
   try{ data = await res.json(); }catch(e){}
   if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
@@ -3415,7 +3446,7 @@ async function guardarUnidadNueva(){
       const fila = basePiuraCache.unidades.find(u => normalizarPlaca(u.Placa) === normalizarPlaca(editandoRegistro.clave));
       if (fila){ fila.Placa = datos.placa; fila["Tipo de Unidad"] = datos.tipoUnidad; fila["Capacidad (PH)"] = datos.capacidadPH; fila.RUC = datos.ruc; fila.Proveedor = datos.proveedor; fila.ZONA = datos.zona; fila.SEDE = datos.sede; }
     } else {
-      const res = await fetch(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"actualizarUnidad", datos }) });
+      const res = await fetchConReintento_(getPiuraUrl(), { method:"POST", body: JSON.stringify({ action:"actualizarUnidad", datos }) });
       let data = {};
       try{ data = await res.json(); }catch(e){}
       if (!res.ok || data.ok === false) throw new Error(data.error || ("El servidor respondió " + res.status));
