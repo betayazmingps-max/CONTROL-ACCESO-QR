@@ -542,15 +542,6 @@
         <div id="dni-error" class="dni-error hidden"></div>
         <div id="dni-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
         <button class="btn block" style="margin-top:16px;" onclick="iniciarEscaneoDni()">📷 Escanear código de barras del DNI</button>
-
-        <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:14px;">
-          <button type="button" class="btn ghost block" onclick="toggleAccesoConductorEmergencia()">¿No puedes escanear tu DNI?</button>
-          <div id="conductor-dni-manual-form" class="hidden" style="margin-top:10px;">
-            <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
-            <button class="btn block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar mi viaje</button>
-            <p class="hint" style="margin-top:6px;">Solo para cuando el código de barras no se puede escanear (dañado, sin cámara, etc.).</p>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1090,6 +1081,12 @@
       <p class="hint" style="margin-top:14px;">
         Las placas, conductores y su documentación (SOAT/RTV/SCTR) salen de la Base Piura. Cada marcación (pedateo) se guarda en la hoja "Registro Accesos QR". Solo cambia estas URLs si te pasan un nuevo despliegue.
       </p>
+      <div class="field" style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
+        <label for="emergencia-licencia">Acceso manual de emergencia (Conductor)</label>
+        <input type="text" id="emergencia-licencia" inputmode="numeric" placeholder="N° de DNI" onkeydown="if(event.key==='Enter') accesoManualEmergencia();">
+        <button class="btn ghost block" style="margin-top:8px;" onclick="accesoManualEmergencia()">Buscar su viaje</button>
+        <p class="hint" style="margin-top:6px;">El Conductor SIEMPRE debe escanear su DNI — esto es solo para que Logística resuelva el caso puntual de un código de barras dañado o ilegible, no un atajo de uso normal.</p>
+      </div>
     </div>
   </section>
 
@@ -1450,11 +1447,6 @@ function abrirLogin(){
   document.getElementById("login-contrasena").value = "";
   document.getElementById("pin-error").classList.add("hidden");
   setTimeout(() => document.getElementById("login-usuario").focus(), 50);
-}
-function toggleAccesoConductorEmergencia(){
-  const form = document.getElementById("conductor-dni-manual-form");
-  form.classList.toggle("hidden");
-  if (!form.classList.contains("hidden")) setTimeout(() => document.getElementById("emergencia-licencia").focus(), 50);
 }
 // A qué pantalla manda cada Rol de la hoja USUARIOS. Se compara sin tildes
 // ni mayúsculas y por "contiene" (no exacto) para no depender de que el
@@ -3588,12 +3580,16 @@ function usarDemo(){
   updateConnStatus();
 }
 
-// Acceso de emergencia: vive directo en la pantalla de Conductor (que ya
-// no pide login ni PIN para nada) — solo por si el código de barras del
-// DNI no se puede escanear (dañado, sin cámara, etc.).
+// Acceso de emergencia: vive DENTRO de Configuración a propósito (solo
+// Logística/Admin llega ahí, con Usuario+Contraseña) — el Conductor
+// siempre debe escanear su DNI, esto no es un atajo de uso normal, es
+// para que Logística resuelva el caso puntual de un código de barras
+// dañado o ilegible.
 async function accesoManualEmergencia(){
   const dni = document.getElementById("emergencia-licencia").value.trim();
   if (!dni) return;
+  goTo("conductor");
+  await initConductor();
   document.getElementById("dni-input").value = dni;
   await verificarDniConductor();
 }
