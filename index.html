@@ -3047,6 +3047,21 @@ async function guardarProveedorNuevo(){
   };
   if (editando) datos.proveedorOriginal = editando.clave;
 
+  // Sin esto se podía crear el mismo proveedor 2 veces (mismo RUC o mismo
+  // nombre) por no haberlo buscado antes — al editar no aplica, porque el
+  // propio proveedor que se está editando "choca" consigo mismo.
+  if (!editando){
+    const rucLimpio = datos.ruc.replace(/\D/g, "");
+    const yaExiste = (basePiuraCache.proveedores || []).some(p =>
+      (rucLimpio && (p.RUC || "").replace(/\D/g, "") === rucLimpio) ||
+      normalizarNombre(p.PROVEEDOR) === normalizarNombre(datos.proveedor)
+    );
+    if (yaExiste){
+      msg.textContent = "Ese RUC o proveedor ya está registrado — búscalo arriba para editarlo en vez de crear otro.";
+      return;
+    }
+  }
+
   msg.textContent = "Guardando…";
   btnGuardar.disabled = true;
   try{
@@ -3164,6 +3179,17 @@ function agregarConductorALista(){
   const datos = leerDatosConductorForm();
   if (!datos.dni){ msg.textContent = "Falta el DNI."; return; }
   if (!datos.conductor){ msg.textContent = "Falta el nombre del conductor."; return; }
+
+  // Evita duplicar el mismo DNI — ya sea contra lo que ya está guardado, o
+  // contra otro que se acaba de agregar a esta misma lista sin guardar aún.
+  const dniLimpio = normalizarDNI(datos.dni);
+  const yaExiste = (basePiuraCache.conductores || []).some(c => normalizarDNI(c.DNI) === dniLimpio) ||
+    conductoresPendientesRegistro.some(c => normalizarDNI(c.dni) === dniLimpio);
+  if (yaExiste){
+    msg.textContent = "Ese DNI ya está registrado — búscalo arriba para editarlo en vez de crear otro.";
+    return;
+  }
+
   conductoresPendientesRegistro.push(datos);
   limpiarFormularioConductorNuevo(false); // mantiene el proveedor puesto, para seguir agregando
   renderListaConductoresRegistro();
@@ -3391,6 +3417,17 @@ function agregarUnidadALista(){
   const msg = document.getElementById("registrar-msg");
   const datos = leerDatosUnidadForm();
   if (!datos.placa){ msg.textContent = "Falta la placa."; return; }
+
+  // Evita duplicar la misma placa — ya sea contra lo que ya está guardado,
+  // o contra otra que se acaba de agregar a esta misma lista sin guardar aún.
+  const placaLimpia = normalizarPlaca(datos.placa);
+  const yaExiste = (basePiuraCache.unidades || []).some(u => normalizarPlaca(u.Placa) === placaLimpia) ||
+    unidadesPendientesRegistro.some(u => normalizarPlaca(u.placa) === placaLimpia);
+  if (yaExiste){
+    msg.textContent = "Esa placa ya está registrada — búscala arriba para editarla en vez de crear otra.";
+    return;
+  }
+
   unidadesPendientesRegistro.push(datos);
   limpiarFormularioUnidadNueva(false); // mantiene el proveedor puesto, para seguir agregando
   renderListaUnidadesRegistro();
