@@ -303,6 +303,22 @@
   .status-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
   .status-dot.on{ background:var(--lime); }
   .status-dot.off{ background:var(--ink-dim); }
+  .status-dot.bad{ background:var(--alert); }
+  .status-dot.wait{ background:#E0A500; animation:pulseDot 1s ease-in-out infinite; }
+  @keyframes pulseDot{ 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
+
+  /* Indicador flotante de conexión — visible en toda la app, para que en
+     Garita/Fundo/Producción (donde la señal suele ser floja) se vea de un
+     vistazo si hay conexión, sin tener que entrar a Configuración. */
+  #conn-badge{
+    position:fixed; top:8px; right:8px; z-index:9999;
+    display:flex; align-items:center; gap:6px;
+    background:rgba(30,17,71,0.88); color:#fff;
+    padding:5px 10px 5px 8px; border-radius:999px;
+    font-size:11px; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.18);
+    pointer-events:none;
+  }
+  #conn-badge .status-dot{ margin-right:0; }
 
   .empty{ color:var(--ink-dim); font-size:13.5px; text-align:center; padding:18px 0; }
 
@@ -380,6 +396,8 @@
 </head>
 <body>
 <div id="app">
+
+  <div id="conn-badge"><span class="status-dot off" id="conn-badge-dot"></span><span id="conn-badge-txt">—</span></div>
 
   <!-- ROLE SELECT -->
   <section id="screen-role" class="screen">
@@ -1178,17 +1196,23 @@ async function fetchConReintento_(url, opciones, intentos){
   opciones = opciones || {};
   intentos = intentos || 2;
   let ultimoError;
-  for (let i = 0; i < intentos; i++){
-    try{
-      const res = await fetch(url, opciones);
-      if (res.ok) return res;
-      ultimoError = new Error("HTTP " + res.status);
-    }catch(e){
-      ultimoError = e;
+  marcarConexionEnVuelo_(1);
+  try{
+    for (let i = 0; i < intentos; i++){
+      try{
+        const res = await fetch(url, opciones);
+        if (res.ok){ marcarConexionResultado_(true); return res; }
+        ultimoError = new Error("HTTP " + res.status);
+      }catch(e){
+        ultimoError = e;
+      }
+      if (i < intentos - 1) await new Promise(r => setTimeout(r, 600));
     }
-    if (i < intentos - 1) await new Promise(r => setTimeout(r, 600));
+    marcarConexionResultado_(false);
+    throw ultimoError;
+  } finally {
+    marcarConexionEnVuelo_(-1);
   }
-  throw ultimoError;
 }
 
 async function cargarBasePiura(){
@@ -3512,6 +3536,66 @@ async function accesoManualEmergencia(){
   document.getElementById("dni-input").value = licencia;
   await verificarDniConductor();
 }
+
+/* =========================================================
+   INDICADOR DE CONEXIÓN (flotante, visible en toda la app)
+   Pensado para Garita/Fundo/Producción, donde la señal suele ser floja y
+   antes no había forma de saber, de un vistazo, si la app está conectada,
+   tratando de conectar, o si de plano no hay señal — solo se veía un error
+   suelto después de esperar. Se alimenta de fetchConReintento_() (por
+   donde pasan TODAS las lecturas y guardados) más los eventos online/
+   offline del navegador, y si el celular lo expone, de la calidad de la
+   red (4G/3G/2G) — así se puede distinguir "es tu señal" de "es Google".
+   ========================================================= */
+function calidadSenal_(){
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!c || !c.effectiveType) return "";
+  const mapa = { "4g":"señal buena", "3g":"señal regular", "2g":"señal débil", "slow-2g":"señal muy débil" };
+  return mapa[c.effectiveType] || "";
+}
+let conexionEnVuelo_ = 0;
+let conexionUltimoOk_ = null;
+function marcarConexionEnVuelo_(delta){
+  conexionEnVuelo_ = Math.max(0, conexionEnVuelo_ + delta);
+  actualizarBadgeConexion_();
+}
+function marcarConexionResultado_(ok){
+  conexionUltimoOk_ = ok;
+  actualizarBadgeConexion_();
+}
+function actualizarBadgeConexion_(){
+  const dot = document.getElementById("conn-badge-dot");
+  const txt = document.getElementById("conn-badge-txt");
+  if (!dot || !txt) return;
+  const senal = calidadSenal_();
+  const sufijoSenal = senal ? " · " + senal : "";
+
+  if (!navigator.onLine){
+    dot.className = "status-dot bad";
+    txt.textContent = "Sin conexión" + sufijoSenal;
+  } else if (conexionEnVuelo_ > 0){
+    dot.className = "status-dot wait";
+    txt.textContent = "Conectando…" + sufijoSenal;
+  } else if (conexionUltimoOk_ === false){
+    dot.className = "status-dot bad";
+    txt.textContent = "Sin respuesta del servidor" + sufijoSenal;
+  } else if (conexionUltimoOk_ === true){
+    dot.className = "status-dot on";
+    txt.textContent = "Conectado" + sufijoSenal;
+  } else if (piuraEnDemo() && registroEnDemo()){
+    dot.className = "status-dot off";
+    txt.textContent = "Modo demo";
+  } else {
+    dot.className = "status-dot off";
+    txt.textContent = "Sin datos aún" + sufijoSenal;
+  }
+}
+window.addEventListener("online", actualizarBadgeConexion_);
+window.addEventListener("offline", actualizarBadgeConexion_);
+if (navigator.connection && navigator.connection.addEventListener){
+  navigator.connection.addEventListener("change", actualizarBadgeConexion_);
+}
+actualizarBadgeConexion_();
 
 /* =========================================================
    PWA install + service worker
