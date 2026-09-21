@@ -1984,6 +1984,8 @@ function onCambioSedeDestinoProduccion(){
 }
 
 function initGarita(){
+  pendingGarita = null;
+  scannerBusy = false;
   renderGaritaLog();
   document.getElementById("garita-result").innerHTML = "";
   document.getElementById("garita-doc").innerHTML = "";
@@ -2035,15 +2037,64 @@ async function onScanSuccess(decodedText){
     }
   }
 
+  // Ya no se guarda apenas se lee el QR: primero se le muestra a Garita lo
+  // que trae el viaje (y la documentación) y recién al tocar "Validar" se
+  // guarda. scannerBusy se queda en true hasta validar o cancelar, para no
+  // leer otro QR mientras se está revisando este.
   const origen = garitaSede.tipo === "fundo" ? "GaritaFundo" : "GaritaPlanta";
-  try{
-    const registro = await marcarAcceso(data.placa, zona, data.conductor || fila && fila.Conductor || "", tipo, origen, {
+  const conductor = data.conductor || (fila && fila.Conductor) || "";
+  pendingGarita = {
+    placa: data.placa, zona, conductor, tipo, origen,
+    extra: {
       viaje: data.viaje || (fila && fila.Viaje) || "1",
       destino: fila ? destinoDeRuta_(fila.Ruta) : "",
       proveedor: fila ? fila.Proveedor : "", ruta: fila ? fila.Ruta : "", capacidad: fila ? fila.Capacidad : "",
       operacion: fila ? fila.Operación : "", tarifa: fila ? fila.Tarifa : "", descuento: fila ? fila.Descuento : "",
       tarifaTotal: fila ? fila["Tarifa Total"] : "", clasificacion: fila ? fila["Clasificación"] : ""
-    });
+    }
+  };
+  mostrarPendienteGarita_();
+}
+
+let pendingGarita = null;
+
+function mostrarPendienteGarita_(){
+  const p = pendingGarita;
+  const e = p.extra;
+  const etiqueta = p.tipo === "Entrada" ? "Ingreso" : "Salida";
+  const filaDato = (label, valor) => valor ? `<div class="doc-row"><span class="dl">${label}</span><span class="dv">${valor}</span></div>` : "";
+  document.getElementById("garita-result").innerHTML = `
+    <div class="doc-panel">
+      <div class="doc-sec-title">DATOS DEL VIAJE — ${etiqueta.toUpperCase()} (aún sin guardar)</div>
+      ${filaDato("Placa", p.placa)}
+      ${filaDato("Viaje", e.viaje)}
+      ${filaDato("Conductor", p.conductor)}
+      ${filaDato("Proveedor", e.proveedor)}
+      ${filaDato("Ruta", e.ruta)}
+      ${filaDato("Destino", e.destino)}
+      ${filaDato("Capacidad", e.capacidad)}
+      ${filaDato("Operación", e.operacion)}
+      ${e.ruta ? "" : `<div class="doc-empty">Este QR no está en la programación de hoy.</div>`}
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn block" onclick="confirmarGarita()">✔ Validar ${etiqueta}</button>
+        <button class="btn ghost block" onclick="cancelarGarita()">Cancelar</button>
+      </div>
+    </div>`;
+  renderDetalleDocumentacion(p.placa, p.conductor);
+}
+
+function cancelarGarita(){
+  pendingGarita = null;
+  document.getElementById("garita-result").innerHTML = "";
+  document.getElementById("garita-doc").innerHTML = "";
+  scannerBusy = false;
+}
+
+async function confirmarGarita(){
+  if (!pendingGarita) return;
+  const p = pendingGarita;
+  try{
+    const registro = await marcarAcceso(p.placa, p.zona, p.conductor, p.tipo, p.origen, p.extra);
     if (!registroEnDemo()) sesionLog.push(registro);
     mostrarResultadoGarita(registro);
     renderGaritaLog();
@@ -2051,6 +2102,7 @@ async function onScanSuccess(decodedText){
     document.getElementById("garita-result").innerHTML =
       `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">ERROR</span>No se pudo guardar el registro. Revisa conexión.</span></div>`;
   }
+  pendingGarita = null;
   setTimeout(() => { scannerBusy = false; }, 2200);
 }
 
