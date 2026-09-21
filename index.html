@@ -1089,9 +1089,10 @@
         </select>
       </div>
       <div>
-        <label class="hint">Tarifa</label>
+        <label class="hint">Tarifa total</label>
         <input type="text" id="prog-tarifa" placeholder="Se calcula según ruta y tamaño" oninput="recalcularTarifaTotal()">
       </div>
+      <input type="hidden" id="prog-tarifa-unit">
       <input type="hidden" id="prog-descuento" value="0">
       <input type="hidden" id="prog-tarifa-total">
       <div class="prog-form-full">
@@ -2549,7 +2550,7 @@ function recalcularTarifaLogistica(){
   // ruta). Descuento se deja siempre en 0: ya no aplica sobre un precio que
   // sale prorrateado.
   const tarifaUnitaria = (tarifaBase != null && vueltasRuta) ? (tarifaBase / vueltasRuta) : null;
-  document.getElementById("prog-tarifa").value = (tarifaUnitaria != null) ? tarifaUnitaria.toFixed(2) : "";
+  document.getElementById("prog-tarifa-unit").value = (tarifaUnitaria != null) ? tarifaUnitaria.toFixed(2) : "";
   document.getElementById("prog-descuento").value = "0";
 
   if (esAdicional){
@@ -2560,25 +2561,24 @@ function recalcularTarifaLogistica(){
     cantInput.value = vueltasRuta;
   }
 
-  // Cada viaje se guarda en SU PROPIA fila a precio unitario (para que
-  // Garita/Producción los escaneen por separado) — el campo Tarifa siempre
-  // muestra el precio de UN viaje (130), eso no cambia. Este texto es solo
-  // para confirmar visualmente cuánto suma el total antes de guardar —
-  // antes solo se mostraba en Adicional, pero en Normal también hace falta
-  // verlo (ej. al programar 4 viajes de una ruta, ver que suman 520).
-  const totalHint = document.getElementById("prog-adicional-total-hint");
+  // El campo visible "Tarifa total" muestra lo que suma TODO lo que se está
+  // programando (viajes × precio de un viaje) — antes mostraba el precio de
+  // UN viaje (130) y confundía. Cada viaje igual se guarda en SU PROPIA fila
+  // al precio de un viaje (prog-tarifa-unit), para que Garita/Producción los
+  // escaneen por separado y en la lista de abajo se vea fraccionado.
   const cant = parseInt(cantInput.value, 10) || 1;
+  document.getElementById("prog-tarifa").value = (tarifaUnitaria != null) ? (tarifaUnitaria * cant).toFixed(2) : "";
+  const totalHint = document.getElementById("prog-adicional-total-hint");
   totalHint.textContent = (tarifaUnitaria != null && cant > 1)
-    ? `${cant} viajes × ${tarifaUnitaria.toFixed(2)} = ${(tarifaUnitaria * cant).toFixed(2)} en total (${cant} filas)`
+    ? `${cant} viajes × ${tarifaUnitaria.toFixed(2)} c/u (cada fila se guarda a ${tarifaUnitaria.toFixed(2)})`
     : "";
 
   recalcularTarifaTotal();
 }
 
-// Tarifa Total = Tarifa - Descuento (por si hay un arreglo especial con el
-// proveedor). Este es el monto que se guarda como definitivo.
+// Tarifa Total (lo que se guarda por fila) = precio de UN viaje - Descuento.
 function recalcularTarifaTotal(){
-  const tarifa = parseFloat(document.getElementById("prog-tarifa").value) || 0;
+  const tarifa = parseFloat(document.getElementById("prog-tarifa-unit").value) || 0;
   const descuento = parseFloat(document.getElementById("prog-descuento").value) || 0;
   document.getElementById("prog-tarifa-total").value = (tarifa - descuento).toString();
 }
@@ -2588,7 +2588,7 @@ function toggleDiaForm(btn){ btn.classList.toggle("on"); }
 function limpiarFormularioProgramacion(){
   document.getElementById("prog-proveedor").value = "";
   onCambioProveedorLogistica();
-  ["prog-cant-viajes","prog-ruta","prog-tarifa","prog-descuento","prog-tarifa-total"]
+  ["prog-cant-viajes","prog-ruta","prog-tarifa","prog-tarifa-unit","prog-descuento","prog-tarifa-total"]
     .forEach(id => document.getElementById(id).value = "");
   document.getElementById("prog-ph").value = "10 PH";
   document.getElementById("prog-operacion").value = "TRASLADO DE MP";
@@ -2648,7 +2648,7 @@ function agregarFilaProgramacion(){
     capacidad: document.getElementById("prog-ph").value,
     ruta: document.getElementById("prog-ruta").value,
     operacion: document.getElementById("prog-operacion").value.trim(),
-    tarifa: document.getElementById("prog-tarifa").value.trim(),
+    tarifa: document.getElementById("prog-tarifa-unit").value.trim(),
     descuento: document.getElementById("prog-descuento").value.trim() || "0",
     tarifaTotal: document.getElementById("prog-tarifa-total").value.trim(),
     clasificacion: document.getElementById("prog-clasificacion").value.trim(),
@@ -2696,6 +2696,7 @@ function editarFilaProgramacion(idx){
   actualizarOrigenDestinoRuta_(f.ruta);
   document.getElementById("prog-operacion").value = f.operacion;
   document.getElementById("prog-tarifa").value = f.tarifa;
+  document.getElementById("prog-tarifa-unit").value = f.tarifa;
   document.getElementById("prog-descuento").value = f.descuento;
   document.getElementById("prog-tarifa-total").value = f.tarifaTotal;
   document.getElementById("prog-clasificacion").value = f.clasificacion;
@@ -2705,6 +2706,7 @@ function editarFilaProgramacion(idx){
   // el bloqueo de solo-lectura ya con la Clasificación correcta.
   aplicarSoloLecturaAdicional_();
   document.getElementById("prog-tarifa").value = f.tarifa;
+  document.getElementById("prog-tarifa-unit").value = f.tarifa;
   document.getElementById("prog-tarifa-total").value = f.tarifaTotal;
   document.getElementById("prog-cant-viajes").value = "1";
   document.querySelectorAll("#prog-days .prog-day").forEach(b => b.classList.toggle("on", !!f.dias[b.dataset.dia]));
