@@ -471,7 +471,7 @@
       </span>
       <span>
         <div class="label">Iniciar sesión</div>
-        <div class="sub">Garita, Producción o Logística — con tu usuario</div>
+        <div class="sub">Garita o Logística — con tu usuario</div>
       </span>
       <span class="chev">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -501,21 +501,6 @@
       <span>
         <div class="label">Garita</div>
         <div class="sub">Escaneo QR para marcar ingreso/salida</div>
-      </span>
-      <span class="chev">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      </span>
-    </button>
-
-    <button class="role-btn" onclick="goTo('produccion')">
-      <span class="icon-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 3v18h18"/><path d="M7 15l3-4 3 3 5-7"/>
-        </svg>
-      </span>
-      <span>
-        <div class="label">Producción</div>
-        <div class="sub">Escaneo QR para ver datos de la unidad</div>
       </span>
       <span class="chev">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -654,7 +639,7 @@
       <div id="pin-error" class="hidden" style="color:var(--alert); font-size:13px; margin-top:8px;">Usuario o contraseña incorrectos.</div>
       <div id="login-loading" class="hint hidden" style="text-align:center; margin-top:8px;">Verificando…</div>
       <button class="btn block" style="margin-top:16px;" onclick="verificarLogin()">Ingresar</button>
-      <p class="hint" style="margin-top:10px; text-align:center;">Tu usuario define a dónde entras: Garita, Producción o Logística.</p>
+      <p class="hint" style="margin-top:10px; text-align:center;">Tu usuario define a dónde entras: Garita o Logística.</p>
     </div>
   </section>
 
@@ -695,56 +680,6 @@
 
     <div class="log-title">Últimos registros</div>
     <div id="garita-log" class="list"></div>
-  </section>
-
-  <!-- PRODUCCIÓN -->
-  <section id="screen-produccion" class="screen hidden">
-    <div class="topbar" style="margin:-22px -20px 4px;">
-      <button class="back" onclick="pararScannerProduccion(); goTo('role');">←</button>
-      <div class="title">Producción</div>
-    </div>
-
-    <div class="field" style="margin-bottom:0;">
-      <label>Sede de esta Producción</label>
-      <div class="tipo-toggle" id="produccion-sede-toggle">
-        <button type="button" class="active" onclick="seleccionarSedeProduccion('planta')" id="produccion-sede-planta">Planta (Carga)</button>
-        <button type="button" onclick="seleccionarSedeProduccion('fundo')" id="produccion-sede-fundo">Fundo (Descarga)</button>
-      </div>
-      <select id="produccion-sede-destino" class="hidden" style="margin-top:8px;" onchange="onCambioSedeDestinoProduccion()">
-        <option value="">— Selecciona destino —</option>
-      </select>
-      <div class="hint" id="produccion-sede-hint" style="margin-top:4px;"></div>
-    </div>
-
-    <div class="scan-wrap" id="scan-wrap-produccion">
-      <div id="reader-produccion"></div>
-      <div class="reticle"><div class="box"><span></span><span></span><span></span><span></span></div></div>
-    </div>
-
-    <div id="produccion-bloqueo"></div>
-
-    <div id="produccion-carga-form" class="prog-form hidden">
-      <div style="font-weight:700;" id="produccion-carga-placa"></div>
-      <div class="row2">
-        <div>
-          <label class="hint">Peso</label>
-          <input type="text" id="prod-peso" placeholder="Ej. 850 kg">
-        </div>
-        <div>
-          <label class="hint">Cantidad de jabas</label>
-          <input type="text" id="prod-jabas" placeholder="Ej. 120">
-        </div>
-      </div>
-      <div class="row2">
-        <button class="btn ghost" onclick="cancelarPedateoProduccion()">Cancelar</button>
-        <button class="btn" onclick="confirmarPedateoProduccion()">Confirmar pedateo</button>
-      </div>
-    </div>
-
-    <div id="produccion-result"></div>
-
-    <div class="log-title">Últimos registros</div>
-    <div id="produccion-log" class="list"></div>
   </section>
 
   <!-- LOGÍSTICA -->
@@ -1415,10 +1350,11 @@ async function marcarAcceso(placa, zona, conductor, tipo, origen, extra){
   return { placa, zona, conductor, tipo: data.tipo || tipo, hora: data.hora || horaISO, origen, ...extra, horaCarga: horaISO, viaje: data.viaje || viaje };
 }
 
-// Un viaje pasa por 6 marcas antes de darse por terminado: Entrada/Salida en
-// Garita Planta, Entrada/Salida en Garita Fundo, y Carga/Descarga en
-// Producción. Se leen las 3 hojas del Registro (PLANTA/FUNDO/PRODUCCION) —
-// en demo se usa el mismo registro plano filtrando por origen/tipo.
+// Un viaje pasa por 4 marcas antes de darse por terminado: Entrada/Salida en
+// Garita Planta y Entrada/Salida en Garita Fundo (ya no hay Producción: el
+// peso, las jabas y la hora de carga salen de la guía). Se leen las 2 hojas
+// del Registro (PLANTA/FUNDO) — en demo se usa el mismo registro plano
+// filtrando por origen/tipo.
 let registroAccesoCache = null;
 async function cargarRegistroAccesoCache(){
   if (registroEnDemo()){
@@ -1426,18 +1362,17 @@ async function cargarRegistroAccesoCache(){
     return registroAccesoCache;
   }
   try{
-    const hojas = ["PLANTA", "FUNDO", "PRODUCCION"];
-    const [pText, fText, prText] = await Promise.all(
+    const hojas = ["PLANTA", "FUNDO"];
+    const [pText, fText] = await Promise.all(
       hojas.map(h => fetchConReintento_(getRegistroUrl() + "?hoja=" + encodeURIComponent(h)).then(r => r.text()))
     );
     registroAccesoCache = {
       planta: parseCSVObjetos(pText),
-      fundo: parseCSVObjetos(fText),
-      produccion: parseCSVObjetos(prText)
+      fundo: parseCSVObjetos(fText)
     };
   }catch(e){
     console.error(e);
-    registroAccesoCache = { planta: [], fundo: [], produccion: [] };
+    registroAccesoCache = { planta: [], fundo: [] };
   }
   return registroAccesoCache;
 }
@@ -1454,8 +1389,7 @@ function viajeEstaCompleto_(placa, viaje, fechaISO){
       r.origen === origen && r.tipo === tipo && (r.hora || "").slice(0, 10) === fechaISO
     );
     return marco("GaritaPlanta", "Entrada") && marco("GaritaPlanta", "Salida") &&
-           marco("GaritaFundo", "Entrada") && marco("GaritaFundo", "Salida") &&
-           marco("ProduccionCarga", "Carga") && marco("ProduccionDescarga", "Descarga");
+           marco("GaritaFundo", "Entrada") && marco("GaritaFundo", "Salida");
   }
 
   const hoy = parseFechaProgramacion(fechaISO) || new Date(fechaISO + "T00:00:00");
@@ -1465,35 +1399,8 @@ function viajeEstaCompleto_(placa, viaje, fechaISO){
   );
   const planta = buscar(registroAccesoCache.planta);
   const fundo = buscar(registroAccesoCache.fundo);
-  const produccion = buscar(registroAccesoCache.produccion);
   return !!(planta && planta.Entrada && planta.Salida &&
-    fundo && fundo.Entrada && fundo.Salida &&
-    produccion && produccion["Hora de Carga"] && produccion["Hora de Descarga"]);
-}
-
-// Producción no puede pedatear (ni Carga en Planta ni Descarga en Fundo) si
-// Garita todavía no marcó Entrada en ESA MISMA sede para este viaje hoy.
-// Requiere que cargarRegistroAccesoCache() ya se haya llamado antes.
-function garitaYaEntroEn_(sedeTipo, placa, viaje, fechaISO){
-  if (!registroAccesoCache) return false;
-  const normPlaca = normalizarPlaca(placa);
-  const viajeTxt = (viaje || "1").toString().trim();
-
-  if (registroAccesoCache.demo){
-    const origen = sedeTipo === "planta" ? "GaritaPlanta" : "GaritaFundo";
-    return registroAccesoCache.demo.some(r =>
-      normalizarPlaca(r.placa) === normPlaca && (r.viaje || "1").toString().trim() === viajeTxt &&
-      r.origen === origen && r.tipo === "Entrada" && (r.hora || "").slice(0, 10) === fechaISO
-    );
-  }
-
-  const lista = sedeTipo === "planta" ? registroAccesoCache.planta : registroAccesoCache.fundo;
-  const hoy = parseFechaProgramacion(fechaISO) || new Date(fechaISO + "T00:00:00");
-  const mismaFecha = f => { const d = parseFechaProgramacion(f); return d && d.toDateString() === hoy.toDateString(); };
-  const fila = (lista || []).find(row =>
-    normalizarPlaca(row.Placa) === normPlaca && (row.Viaje || "1").toString().trim() === viajeTxt && mismaFecha(row.Fecha)
-  );
-  return !!(fila && fila.Entrada);
+    fundo && fundo.Entrada && fundo.Salida);
 }
 
 function formatHora(iso){
@@ -1514,7 +1421,6 @@ function formatHora(iso){
 const DEMO_USUARIOS = [
   { usuario: "ADMIN", contrasena: "1234", nombre: "Demo", rol: "" },
   { usuario: "GARITA1", contrasena: "1234", nombre: "Garita Demo", rol: "Garita" },
-  { usuario: "PRODUCCION1", contrasena: "1234", nombre: "Producción Demo", rol: "Producción" },
   { usuario: "LOGISTICA1", contrasena: "1234", nombre: "Logística Demo", rol: "Logística" },
 ];
 let usuarioActivo = null; // nombre de quien inició sesión (para trazabilidad)
@@ -1535,7 +1441,9 @@ function abrirLogin(){
 function destinoPorRol_(rolTexto){
   const rol = quitarAcentos((rolTexto || "").toString()).trim().toUpperCase();
   if (rol.includes("GARITA")) return "garita";
-  if (rol.includes("PRODUC")) return "produccion";
+  // Producción ya no existe como pantalla — una cuenta con ese Rol NO debe
+  // caer en el menú completo por la red de seguridad de abajo.
+  if (rol.includes("PRODUC")) return null;
   if (rol.includes("LOGIST")) return "menu";
   return "menu";
 }
@@ -1568,8 +1476,14 @@ async function verificarLogin(){
   loadingEl.classList.add("hidden");
 
   if (resultado.ok){
+    const destino = destinoPorRol_(resultado.rol);
+    if (!destino){
+      errorEl.textContent = "Tu cuenta es de Producción, que ya no se usa. Pide a Logística que te cambie el Rol.";
+      errorEl.classList.remove("hidden");
+      return;
+    }
     usuarioActivo = resultado.nombre || usuario;
-    goTo(destinoPorRol_(resultado.rol));
+    goTo(destino);
   } else {
     errorEl.textContent = resultado.error || "Usuario o contraseña incorrectos.";
     errorEl.classList.remove("hidden");
@@ -1580,7 +1494,6 @@ function goTo(screen){
   document.getElementById("screen-" + screen).classList.remove("hidden");
   if (screen === "conductor") initConductor();
   if (screen === "garita") initGarita();
-  if (screen === "produccion") initProduccion();
   if (screen === "logistica-programar") initLogistica();
   if (screen === "logistica-registrar") initRegistrar();
   if (screen === "settings") initSettings();
@@ -1596,7 +1509,7 @@ function initSettingsConductor(){
 /* =========================================================
    SELECTOR MANUAL DE ENTRADA/SALIDA (Garita y Producción)
    ========================================================= */
-let tipoSeleccionado = { garita: "Entrada", produccion: "Entrada" };
+let tipoSeleccionado = { garita: "Entrada" };
 function seleccionarTipo(pantalla, tipo){
   tipoSeleccionado[pantalla] = tipo;
   const btnEntrada = document.getElementById(pantalla + "-tipo-entrada");
@@ -1671,7 +1584,6 @@ async function initConductor(){
   // anterior, algunos navegadores no dejan abrir una segunda cámara a la
   // vez — se cierran por si acaso antes de entrar a Conductor.
   pararScanner();
-  pararScannerProduccion();
   document.getElementById("conductor-qr-wrap").classList.add("hidden");
   document.getElementById("conductor-viajes-wrap").classList.add("hidden");
   document.getElementById("conductor-dni-wrap").classList.remove("hidden");
@@ -1947,42 +1859,6 @@ function onCambioSedeDestinoGarita(){
   actualizarHintSedeGarita_();
 }
 
-// Producción también trabaja por Sede: en Planta se hace la Carga, en el
-// Fundo (destino) se hace la Descarga — ya no hay Ingreso/Salida separado,
-// la Sede define directamente cuál de las dos es.
-let produccionSede = { tipo: "planta", destino: "" };
-function poblarDestinosProduccion_(){
-  const sel = document.getElementById("produccion-sede-destino");
-  const anterior = produccionSede.destino;
-  sel.innerHTML = '<option value="">— Selecciona destino —</option>' +
-    destinosDisponibles_().map(d => `<option value="${d}">${d}</option>`).join("");
-  if (anterior) sel.value = anterior;
-  produccionSede.destino = sel.value;
-  actualizarHintSedeProduccion_();
-}
-function actualizarHintSedeProduccion_(){
-  const hint = document.getElementById("produccion-sede-hint");
-  if (produccionSede.tipo === "planta"){
-    hint.textContent = "Registra la Carga — acepta cualquier unidad, todas cargan en Planta Recria.";
-  } else {
-    hint.textContent = produccionSede.destino
-      ? ("Registra la Descarga — solo acepta unidades programadas hacia " + produccionSede.destino + ".")
-      : "Elige a qué destino/fundo corresponde esta Producción.";
-  }
-}
-function seleccionarSedeProduccion(tipo){
-  produccionSede.tipo = tipo;
-  document.getElementById("produccion-sede-planta").classList.toggle("active", tipo === "planta");
-  document.getElementById("produccion-sede-fundo").classList.toggle("active", tipo === "fundo");
-  document.getElementById("produccion-sede-destino").classList.toggle("hidden", tipo !== "fundo");
-  if (tipo === "fundo") poblarDestinosProduccion_();
-  else actualizarHintSedeProduccion_();
-}
-function onCambioSedeDestinoProduccion(){
-  produccionSede.destino = document.getElementById("produccion-sede-destino").value;
-  actualizarHintSedeProduccion_();
-}
-
 function initGarita(){
   pendingGarita = null;
   scannerBusy = false;
@@ -2196,194 +2072,6 @@ function renderGaritaLog(){
   const cont = document.getElementById("garita-log");
   const todos = registroEnDemo() ? getRegistrosDemo() : sesionLog;
   const regs = todos.filter(r => !r.origen || r.origen === "GaritaPlanta" || r.origen === "GaritaFundo").slice(-8).reverse();
-  if (!regs.length){
-    cont.innerHTML = '<div class="empty">Aún no hay registros.</div>';
-    return;
-  }
-  cont.innerHTML = regs.map(r => `
-    <div class="log-item">
-      <span class="lp">${r.placa}${r.viaje ? " · V" + r.viaje : ""}</span>
-      <span class="lt ${r.tipo.toLowerCase()}">${r.tipo}</span>
-      <span>${formatHora(r.hora)}</span>
-    </div>
-  `).join("");
-}
-
-/* =========================================================
-   PRODUCCIÓN SCREEN
-   ========================================================= */
-let html5QrCodeProduccion = null;
-let scannerBusyProduccion = false;
-let sesionLogProduccion = [];
-let pendingProduccionScan = null;
-
-function initProduccion(){
-  renderProduccionLog();
-  document.getElementById("produccion-result").innerHTML = "";
-  document.getElementById("produccion-bloqueo").innerHTML = "";
-  document.getElementById("produccion-carga-form").classList.add("hidden");
-  pendingProduccionScan = null;
-  seleccionarSedeProduccion(produccionSede.tipo);
-  if (!docCacheCargado) cargarDocumentacion().then(() => { if (produccionSede.tipo === "fundo") poblarDestinosProduccion_(); });
-  if (html5QrCodeProduccion) return;
-  html5QrCodeProduccion = new Html5Qrcode("reader-produccion");
-  html5QrCodeProduccion.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 230 },
-    onScanSuccessProduccion,
-    () => {}
-  ).catch(err => {
-    document.getElementById("produccion-result").innerHTML =
-      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">CÁMARA</span>No se pudo abrir la cámara. Revisa permisos del navegador.</span></div>`;
-  });
-}
-
-function pararScannerProduccion(){
-  if (html5QrCodeProduccion){
-    html5QrCodeProduccion.stop().catch(()=>{});
-    html5QrCodeProduccion.clear();
-    html5QrCodeProduccion = null;
-  }
-}
-
-async function onScanSuccessProduccion(decodedText){
-  if (scannerBusyProduccion) return;
-  scannerBusyProduccion = true;
-  const horaCarga = new Date().toISOString(); // se toma apenas se detecta el QR, no al confirmar
-  document.getElementById("produccion-bloqueo").innerHTML = "";
-  document.getElementById("produccion-result").innerHTML = "";
-
-  let data;
-  try{ data = JSON.parse(decodedText); }
-  catch(e){ data = { placa: decodedText }; }
-
-  const viaje = data.viaje || "1";
-
-  // La Capacidad/Ruta que se muestran, y la Tarifa que se guarda (sin
-  // mostrarla en pantalla), son las que Logística puso en la Programación
-  // de este viaje — no las de Unidades.
-  const fila = buscarFilaProgramacionHoy(data.placa, viaje) || {};
-  const destinoFila = fila.Ruta ? destinoDeRuta_(fila.Ruta) : "";
-
-  // Si esta Producción es de un Fundo (Descarga), solo acepta unidades
-  // programadas hacia ESE destino — igual que Garita.
-  if (produccionSede.tipo === "fundo"){
-    if (!destinoFila || normalizarNombre(destinoFila) !== normalizarNombre(produccionSede.destino)){
-      document.getElementById("produccion-bloqueo").innerHTML =
-        `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">NO CORRESPONDE</span>Esta unidad no está programada hacia ${produccionSede.destino || "este destino"}.</span></div>`;
-      setTimeout(() => { scannerBusyProduccion = false; }, 2200);
-      return;
-    }
-  }
-
-  // Requisito obligatorio: Garita debe haber marcado Entrada en ESTA MISMA
-  // sede (Planta o Fundo) antes de que Producción pueda pedatear ahí — sea
-  // Carga (Planta) o Descarga (Fundo).
-  const hoyISO = new Date().toISOString().slice(0, 10);
-  await cargarRegistroAccesoCache();
-  const yaEntroGarita = garitaYaEntroEn_(produccionSede.tipo, data.placa, viaje, hoyISO);
-  if (!yaEntroGarita){
-    const sedeTxt = produccionSede.tipo === "planta" ? "Planta" : "el Fundo";
-    document.getElementById("produccion-bloqueo").innerHTML =
-      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">BLOQUEADO</span>La placa ${data.placa} (viaje ${viaje}) aún no tiene Entrada de Garita en ${sedeTxt}. Debe pasar por Garita primero.</span></div>`;
-    setTimeout(() => { scannerBusyProduccion = false; }, 2200);
-    return;
-  }
-
-  // Válido: se pide peso y jabas antes de confirmar el pedateo de Producción,
-  // pero la hora que se guarda es la del escaneo, no la del formulario.
-  pendingProduccionScan = {
-    ...data, viaje, horaCarga, destino: destinoFila,
-    conductor: data.conductor || fila.Conductor || "",
-    proveedor: fila.Proveedor || "", ruta: fila.Ruta || "", capacidad: fila.Capacidad || "",
-    operacion: fila.Operación || "", tarifa: fila.Tarifa || "", descuento: fila.Descuento || "",
-    tarifaTotal: fila["Tarifa Total"] || "", clasificacion: fila["Clasificación"] || "",
-    zona: (function(){ const prov=(basePiuraCache.proveedores||[]).find(p=>p.PROVEEDOR===fila.Proveedor); return prov?prov.ZONA:""; })()
-  };
-  document.getElementById("produccion-carga-placa").textContent = `Placa ${data.placa}${pendingProduccionScan.conductor ? " — " + pendingProduccionScan.conductor : ""} — Viaje ${viaje}`;
-  document.getElementById("prod-peso").value = "";
-  document.getElementById("prod-jabas").value = "";
-  document.getElementById("produccion-carga-form").classList.remove("hidden");
-  setTimeout(() => document.getElementById("prod-peso").focus(), 50);
-  // scannerBusyProduccion se mantiene true hasta confirmar/cancelar, para no volver a escanear mientras se llena el formulario.
-}
-
-function cancelarPedateoProduccion(){
-  pendingProduccionScan = null;
-  document.getElementById("produccion-carga-form").classList.add("hidden");
-  scannerBusyProduccion = false;
-}
-
-async function confirmarPedateoProduccion(){
-  if (!pendingProduccionScan) return;
-  const data = pendingProduccionScan;
-  const peso = document.getElementById("prod-peso").value.trim();
-  const jabas = document.getElementById("prod-jabas").value.trim();
-  const zona = data.zona || "";
-  const tipo = produccionSede.tipo === "planta" ? "Carga" : "Descarga";
-  const origen = produccionSede.tipo === "planta" ? "ProduccionCarga" : "ProduccionDescarga";
-
-  try{
-    const registro = await marcarAcceso(data.placa, zona, data.conductor || "", tipo, origen, {
-      peso, jabas, horaCarga: data.horaCarga, viaje: data.viaje, destino: data.destino,
-      proveedor: data.proveedor, ruta: data.ruta, capacidad: data.capacidad,
-      operacion: data.operacion, tarifa: data.tarifa, descuento: data.descuento,
-      tarifaTotal: data.tarifaTotal, clasificacion: data.clasificacion
-    });
-    if (!registroEnDemo()) sesionLogProduccion.push(registro);
-    mostrarResultadoProduccion(registro, data);
-    renderProduccionLog();
-  }catch(e){
-    document.getElementById("produccion-result").innerHTML =
-      `<div class="result-banner err"><span class="rb-icon">!</span><span><span class="badge">ERROR</span>No se pudo guardar el registro. Revisa conexión.</span></div>`;
-  }
-  pendingProduccionScan = null;
-  document.getElementById("produccion-carga-form").classList.add("hidden");
-  setTimeout(() => { scannerBusyProduccion = false; }, 2200);
-}
-
-function mostrarResultadoProduccion(registro, qrData){
-  const cls = registro.tipo === "Carga" ? "" : "salida";
-  const icon = registro.tipo === "Carga" ? ICON_CHECK : ICON_OUT;
-  const conductor = registro.conductor || qrData.conductor || "";
-  // Ruta/Capacidad salen de la Programación (lo que puso Logística para
-  // este viaje), no de la ficha de la Unidad. La Tarifa no se muestra acá
-  // a propósito — Producción no debe ver precios — pero sí se guarda en
-  // el Sheet (va en el POST de marcarAcceso más abajo).
-  const proveedor = qrData.proveedor || "";
-  const ruta = qrData.ruta || "";
-  const capacidad = qrData.capacidad || "";
-
-  document.getElementById("produccion-result").innerHTML = `
-    <div class="result-banner ${cls}">
-      <span class="rb-icon">${icon}</span>
-      <span>
-        <span class="badge">${registro.tipo.toUpperCase()}${registro.viaje ? " · VIAJE " + registro.viaje : ""}</span>
-        <div class="rb-placa">${registro.placa}</div>
-        <div class="rb-hora">${formatHora(registro.hora)}</div>
-      </span>
-    </div>
-    <div class="doc-panel" style="margin-top:10px;">
-      ${filaDoc("Conductor", conductor)}
-      ${filaDoc("Proveedor", proveedor)}
-      ${filaDoc("Ruta", ruta)}
-      ${filaDoc("Capacidad", capacidad)}
-      ${filaDoc(registro.tipo === "Carga" ? "Hora de carga" : "Hora de descarga", formatHora(registro.hora))}
-      ${filaDoc("Peso", registro.peso)}
-      ${filaDoc("Cantidad de jabas", registro.jabas)}
-    </div>`;
-
-  const wrap = document.getElementById("scan-wrap-produccion");
-  wrap.classList.remove("hit","salida");
-  void wrap.offsetWidth;
-  wrap.classList.add("hit");
-  if (cls) wrap.classList.add("salida");
-}
-
-function renderProduccionLog(){
-  const cont = document.getElementById("produccion-log");
-  const todos = registroEnDemo() ? getRegistrosDemo() : sesionLogProduccion;
-  const regs = todos.filter(r => r.origen === "ProduccionCarga" || r.origen === "ProduccionDescarga").slice(-8).reverse();
   if (!regs.length){
     cont.innerHTML = '<div class="empty">Aún no hay registros.</div>';
     return;
